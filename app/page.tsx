@@ -29,6 +29,9 @@ type AnalysisResult = {
     protein_g: number;
     carbs_g: number;
     fat_g: number;
+    fiber_g?: number;
+    sugar_g?: number;
+    sodium_mg?: number;
   };
   items: AnalysisItem[];
   ai_nutritionist_tip: string;
@@ -38,6 +41,8 @@ type AnalysisResult = {
   clarification_question?: string;
 };
 
+type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
+
 export default function Home() {
   const [lang, setLang] = useState<Lang>("ar");
   const t = dict[lang];
@@ -46,12 +51,16 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState("");
+  const [selectedSlot, setSelectedSlot] = useState<MealSlot>("breakfast");
+  const [savingMeal, setSavingMeal] = useState(false);
+  const [savedToDiary, setSavedToDiary] = useState(false);
 
   async function analyze() {
     if (!description.trim()) return;
     setLoading(true);
     setError("");
     setResult(null);
+    setSavedToDiary(false);
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
@@ -88,6 +97,32 @@ export default function Home() {
       }),
     }).catch(() => {});
     alert(lang === "ar" ? "يسلمو! سجلنا ملاحظتك" : "Thanks! Feedback recorded");
+  }
+
+  async function addToDiary() {
+    if (!result) return;
+    setSavingMeal(true);
+    try {
+      const res = await fetch("/api/meals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slot: selectedSlot,
+          description,
+          inputType: result.input_type || "text",
+          items: result.items,
+          totals: result.totals,
+          aiTip: result.ai_nutritionist_tip,
+          swapSuggestion: result.healthy_swap_suggestion,
+        }),
+      });
+      const data = await res.json();
+      if (!data.error) setSavedToDiary(true);
+    } catch {
+      // no-op: user can retry
+    } finally {
+      setSavingMeal(false);
+    }
   }
 
   return (
@@ -239,7 +274,35 @@ export default function Home() {
             <button onClick={() => sendFeedback(false)}>{t.fix}</button>
           </div>
 
-          <button className="analyze-cta" onClick={() => { setResult(null); setDescription(""); }}>
+          {status === "authenticated" && (
+            <div className="form-card">
+              {savedToDiary ? (
+                <p style={{ textAlign: "center", color: "var(--zaatar)", fontWeight: 700, fontSize: 13 }}>
+                  ✓ {t.addedToDiary}
+                </p>
+              ) : (
+                <>
+                  <div className="form-field">
+                    <label>{t.addToDiaryTitle}</label>
+                    <select
+                      value={selectedSlot}
+                      onChange={(e) => setSelectedSlot(e.target.value as MealSlot)}
+                    >
+                      <option value="breakfast">{t.slotBreakfast}</option>
+                      <option value="lunch">{t.slotLunch}</option>
+                      <option value="dinner">{t.slotDinner}</option>
+                      <option value="snack">{t.slotSnack}</option>
+                    </select>
+                  </div>
+                  <button className="analyze-cta" onClick={addToDiary} disabled={savingMeal}>
+                    {t.addToDiaryCta}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
+          <button className="analyze-cta" onClick={() => { setResult(null); setDescription(""); setSavedToDiary(false); }}>
             {t.newMeal}
           </button>
         </>
