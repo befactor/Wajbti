@@ -1,36 +1,53 @@
-/**
- * هاي النسخة الأولية (placeholder) لمحرك استرجاع التصحيحات.
- * حالياً بترجع مصفوفة فاضية دايماً - المشروع لسا ما وصل لقاعدة بيانات حقيقية.
- *
- * الخطوة الجاية (بعد ربط Supabase/Postgres):
- * 1. جدول "corrections": id, original_description, corrected_food_name,
- *    corrected_weight_g, note, created_at
- * 2. عند كل استدعاء، نعمل بحث نصي بسيط (ILIKE) أو نستخدم embeddings
- *    لإيجاد أقرب تصحيحات لنفس الوصف/الطبق.
- * 3. نرجع أفضل 3-5 نتائج بس (تفادي إطالة الـ prompt).
- */
+import { prisma } from "@/lib/prisma";
 
 export type Correction = {
   original_description: string;
   corrected_food_name: string;
 };
 
+/**
+ * استرجاع بسيط (RAG) لأقرب تصحيحات سابقة: بحث نصي (ILIKE) عن كلمات مشتركة
+ * بين الوصف الحالي وأوصاف سابقة صحّحها مستخدمون. كافٍ لحجم بيانات ناشئ؛
+ * قابل للترقية لاحقاً لـ embeddings دون تغيير الواجهة (findSimilarCorrections).
+ */
 export async function findSimilarCorrections(params: {
   description: string;
 }): Promise<Correction[]> {
-  // TODO: اربطها بقاعدة البيانات الفعلية بعد إعداد Supabase
-  // مثال مستقبلي:
-  // const { data } = await supabase
-  //   .from('corrections')
-  //   .select('*')
-  //   .textSearch('original_description', params.description)
-  //   .limit(5);
-  // return data ?? [];
+  const description = params.description.trim();
+  if (!description) return [];
 
-  return [];
+  const words = description
+    .split(/\s+/)
+    .map((w) => w.trim())
+    .filter((w) => w.length >= 2)
+    .slice(0, 6);
+
+  if (words.length === 0) return [];
+
+  const matches = await prisma.correction.findMany({
+    where: {
+      OR: words.map((word) => ({
+        originalDescription: { contains: word, mode: "insensitive" as const },
+      })),
+    },
+    orderBy: { createdAt: "desc" },
+    take: 5,
+  });
+
+  return matches.map((m) => ({
+    original_description: m.originalDescription,
+    corrected_food_name: m.correctedFoodName,
+  }));
 }
 
-export async function saveCorrection(correction: Correction): Promise<void> {
-  // TODO: اربطها بقاعدة البيانات - إدخال (insert) بجدول corrections
-  console.log("Correction to save (not persisted yet):", correction);
+export async function saveCorrection(
+  correction: Correction & { userId?: string }
+): Promise<void> {
+  await prisma.correction.create({
+    data: {
+      originalDescription: correction.original_description,
+      correctedFoodName: correction.corrected_food_name,
+      userId: correction.userId,
+    },
+  });
 }
