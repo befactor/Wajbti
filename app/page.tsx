@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { dict, Lang } from "@/lib/i18n";
+import TabsBar from "@/app/components/TabsBar";
 
 type PortionComponent = {
   component: string;
@@ -243,6 +244,8 @@ export default function Home() {
           </button>
         </>
       )}
+
+      <TabsBar lang={lang} />
     </div>
   );
 }

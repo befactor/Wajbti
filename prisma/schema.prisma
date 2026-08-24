@@ -78,7 +78,7 @@ model Profile {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   sex           String? // male | female
-  birthDate     DateTime?
+  ageYears      Int?
   heightCm      Float?
   weightKg      Float?
   activityLevel String? // sedentary | light | moderate | active | very_active
