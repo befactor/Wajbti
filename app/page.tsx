@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useSession, signOut } from "next-auth/react";
+import Link from "next/link";
 import { dict, Lang } from "@/lib/i18n";
 
 type PortionComponent = {
@@ -38,6 +40,7 @@ type AnalysisResult = {
 export default function Home() {
   const [lang, setLang] = useState<Lang>("ar");
   const t = dict[lang];
+  const { data: session, status } = useSession();
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -91,6 +94,19 @@ export default function Home() {
       <button className="lang-toggle" onClick={() => setLang(lang === "ar" ? "en" : "ar")}>
         {lang === "ar" ? "English" : "العربية"}
       </button>
+
+      <div className="top-nav">
+        {status === "authenticated" ? (
+          <>
+            <span>{session.user?.name || session.user?.email}</span>
+            <button onClick={() => signOut({ callbackUrl: "/" })}>{t.auth.signOut}</button>
+          </>
+        ) : status === "unauthenticated" ? (
+          <Link href="/auth/signin">{t.auth.signInCta}</Link>
+        ) : (
+          <span />
+        )}
+      </div>
 
       <div className="brand">
         <div className="brand-mark" />
