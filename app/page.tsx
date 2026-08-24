@@ -54,9 +54,31 @@ export default function Home() {
   const [selectedSlot, setSelectedSlot] = useState<MealSlot>("breakfast");
   const [savingMeal, setSavingMeal] = useState(false);
   const [savedToDiary, setSavedToDiary] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [imageMediaType, setImageMediaType] = useState<string>("image/jpeg");
+
+  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setImagePreview(dataUrl);
+      setImageBase64(dataUrl.split(",")[1] || null);
+      setImageMediaType(file.type || "image/jpeg");
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }
+
+  function clearImage() {
+    setImagePreview(null);
+    setImageBase64(null);
+  }
 
   async function analyze() {
-    if (!description.trim()) return;
+    if (!description.trim() && !imageBase64) return;
     setLoading(true);
     setError("");
     setResult(null);
@@ -65,7 +87,11 @@ export default function Home() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description }),
+        body: JSON.stringify({
+          description: description.trim() || undefined,
+          imageBase64: imageBase64 || undefined,
+          mediaType: imageBase64 ? imageMediaType : undefined,
+        }),
       });
       const data = await res.json();
       if (data.error) {
@@ -152,13 +178,31 @@ export default function Home() {
 
       {!result && !loading && (
         <>
-          <div className="capture-card">
-            <button className="capture-btn" onClick={analyze} aria-label={t.captureTitle}>
-              🍽️
-            </button>
-            <h2>{t.captureTitle}</h2>
-            <p>{t.captureDesc}</p>
-          </div>
+          {imagePreview ? (
+            <div className="image-preview-card">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={imagePreview} alt={t.captureTitle} />
+              <button className="image-remove-btn" onClick={clearImage} aria-label={t.removeImage}>
+                ✕
+              </button>
+            </div>
+          ) : (
+            <div className="capture-card">
+              <label className="capture-btn" htmlFor="meal-photo-input">
+                🍽️
+              </label>
+              <input
+                id="meal-photo-input"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleImageSelect}
+                style={{ display: "none" }}
+              />
+              <h2>{t.captureTitle}</h2>
+              <p>{t.captureDesc}</p>
+            </div>
+          )}
 
           <div className="desc-input">
             <input
@@ -172,7 +216,7 @@ export default function Home() {
 
           {error && <p style={{ color: "var(--sumac)", fontSize: 13, marginBottom: 10 }}>{error}</p>}
 
-          <button className="analyze-cta" onClick={analyze}>
+          <button className="analyze-cta" onClick={analyze} disabled={!description.trim() && !imageBase64}>
             {t.analyzeCta}
           </button>
         </>
@@ -302,7 +346,15 @@ export default function Home() {
             </div>
           )}
 
-          <button className="analyze-cta" onClick={() => { setResult(null); setDescription(""); setSavedToDiary(false); }}>
+          <button
+            className="analyze-cta"
+            onClick={() => {
+              setResult(null);
+              setDescription("");
+              setSavedToDiary(false);
+              clearImage();
+            }}
+          >
             {t.newMeal}
           </button>
         </>
