@@ -13,8 +13,6 @@
 export type Correction = {
   original_description: string;
   corrected_food_name: string;
-  corrected_weight_g?: number;
-  note?: string;
 };
 
 export async function findSimilarCorrections(params: {

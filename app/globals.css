@@ -67,6 +67,11 @@ h1.title { font-family: "El Messiri", sans-serif; font-size: 26px; font-weight: 
   background: rgba(166,58,58,0.1); color: var(--sumac); border: 1px solid rgba(166,58,58,0.25);
   border-radius: 14px; padding: 10px 14px; font-size: 12.5px; font-weight: 600; margin-bottom: 16px;
 }
+.portion-card .portion-disclaimer { font-size: 11.5px; color: var(--taupe); line-height: 1.7; margin-bottom: 10px; }
+.portion-item { margin-bottom: 10px; }
+.portion-item strong { font-size: 13px; }
+.portion-item ul { margin: 6px 0 0; padding-inline-start: 18px; }
+.portion-item li { font-size: 12.5px; color: #4a3f35; line-height: 1.9; }
 .feedback-row { display: flex; gap: 10px; margin: 16px 0; }
 .feedback-row button {
   flex: 1; border-radius: 14px; padding: 10px; font-weight: 700; font-size: 13px; cursor: pointer; border: 1px solid var(--line);

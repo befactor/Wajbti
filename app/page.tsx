@@ -3,22 +3,34 @@
 import { useState } from "react";
 import { dict, Lang } from "@/lib/i18n";
 
+type PortionComponent = {
+  component: string;
+  household_measure: string;
+  weight_g: number;
+};
+
+type AnalysisItem = {
+  food_name: string;
+  food_name_en?: string;
+  estimated_weight_g: number;
+  portion_breakdown?: PortionComponent[];
+  hidden_fat_detected: boolean;
+  confidence_score: string;
+  is_standard_portion_estimate?: boolean;
+};
+
 type AnalysisResult = {
+  input_type?: "image" | "text";
   totals: {
     calories: number;
     protein_g: number;
     carbs_g: number;
     fat_g: number;
   };
-  items: Array<{
-    food_name: string;
-    food_name_en?: string;
-    estimated_weight_g: number;
-    hidden_fat_detected: boolean;
-    confidence_score: string;
-  }>;
+  items: AnalysisItem[];
   ai_nutritionist_tip: string;
   healthy_swap_suggestion: string;
+  medical_disclaimer_flag?: boolean;
   needs_clarification?: boolean;
   clarification_question?: string;
 };
@@ -58,14 +70,18 @@ export default function Home() {
   async function sendFeedback(correct: boolean) {
     if (!result) return;
     if (correct) return; // ما في شي نعمله لو صح
-    const note = window.prompt(
-      lang === "ar" ? "شو الصح؟ (اسم الأكلة أو الوزن)" : "What's correct? (food name or weight)"
+    // المستخدم يصحح اسم الأكلة بس - الأرقام (سعرات/وزن) مسؤولية النظام حصراً
+    const correctedFoodName = window.prompt(
+      lang === "ar" ? "شو اسم الأكلة الصحيح؟" : "What's the correct food name?"
     );
-    if (!note) return;
+    if (!correctedFoodName) return;
     await fetch("/api/feedback", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ original_description: description, note }),
+      body: JSON.stringify({
+        original_description: description,
+        corrected_food_name: correctedFoodName,
+      }),
     }).catch(() => {});
     alert(lang === "ar" ? "يسلمو! سجلنا ملاحظتك" : "Thanks! Feedback recorded");
   }
@@ -168,6 +184,28 @@ export default function Home() {
               ⚠️ {lang === "ar" ? "رصدنا دهون مخفية بالوجبة" : "Hidden fats detected in this meal"}
             </div>
           )}
+
+          {result.input_type === "text" &&
+            result.items?.some((i) => i.portion_breakdown && i.portion_breakdown.length > 0) && (
+              <div className="tip-card portion-card">
+                <h3>📏 {t.portionTitle}</h3>
+                <p className="portion-disclaimer">{t.portionDisclaimer}</p>
+                {result.items.map((item, idx) =>
+                  item.portion_breakdown && item.portion_breakdown.length > 0 ? (
+                    <div key={idx} className="portion-item">
+                      <strong>{lang === "ar" ? item.food_name : item.food_name_en || item.food_name}</strong>
+                      <ul>
+                        {item.portion_breakdown.map((p, i) => (
+                          <li key={i}>
+                            {p.component} — {p.household_measure} (~{p.weight_g}g)
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null
+                )}
+              </div>
+            )}
 
           <div className="tip-card">
             <h3>💡 {t.tipTitle}</h3>

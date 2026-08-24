@@ -19,6 +19,8 @@ export const dict = {
     fix: "صحّح لي ✗",
     save: "حفظ بالسجل",
     newMeal: "وجبة جديدة",
+    portionTitle: "تفصيل الكمية المفترضة",
+    portionDisclaimer: "هاي حصة قياسية افتراضية (مو ملاحظة فعلية من صورة وجبتك) — قارنها بعينك مع وجبتك الحقيقية.",
   },
   en: {
     dir: "ltr",
@@ -40,6 +42,8 @@ export const dict = {
     fix: "Fix this ✗",
     save: "Save to log",
     newMeal: "New meal",
+    portionTitle: "Assumed portion breakdown",
+    portionDisclaimer: "This is a standard assumed portion (not an actual observation of your meal) — compare it by eye with your real meal.",
   },
 } as const;
 
