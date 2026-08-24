@@ -6,6 +6,7 @@ import Link from "next/link";
 import { dict, Lang } from "@/lib/i18n";
 import TabsBar from "@/app/components/TabsBar";
 import { addDays, localDateStr } from "@/lib/date";
+import { getAdaptiveDiaryTip } from "@/lib/nutrition";
 
 type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
 
@@ -71,6 +72,10 @@ export default function DiaryPage() {
   );
 
   const remaining = calorieTarget != null ? Math.round(calorieTarget - totals.calories) : null;
+  const adaptiveTip =
+    calorieTarget != null && meals.length > 0
+      ? getAdaptiveDiaryTip(totals.calories, calorieTarget)
+      : "none";
   const ringPct = calorieTarget ? Math.min(1, totals.calories / calorieTarget) : 0;
   const circumference = 326.7;
 
@@ -187,6 +192,13 @@ export default function DiaryPage() {
             <p style={{ textAlign: "center", fontSize: 11.5, color: "var(--taupe)", marginBottom: 20 }}>
               {td.consumed}: {Math.round(totals.calories)} / {td.goal}: {Math.round(calorieTarget)} kcal
             </p>
+          )}
+
+          {adaptiveTip !== "none" && (
+            <div className={adaptiveTip === "over" ? "hidden-fat-flag" : "tip-card"}>
+              {adaptiveTip === "watch" ? "⚖️ " : "🔄 "}
+              {adaptiveTip === "watch" ? td.adaptiveWatch : td.adaptiveOver}
+            </div>
           )}
 
           {meals.length === 0 && (

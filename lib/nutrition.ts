@@ -66,3 +66,17 @@ export function calculateDailyWaterTargetMl(
   const base = weightKg * 33;
   return Math.round((base + WATER_ACTIVITY_BONUS_ML[activityLevel]) / 50) * 50;
 }
+
+// "Flexibility instead of restriction": if the meals logged so far already
+// ate up most of the daily target, nudge the next meal to go lighter on
+// carbs/fat instead of letting the user feel like they've already failed
+// the day. Pure arithmetic heuristic - no LLM call needed for this nudge.
+export type AdaptiveTipLevel = "none" | "watch" | "over";
+
+export function getAdaptiveDiaryTip(consumedSoFar: number, dailyTarget: number): AdaptiveTipLevel {
+  if (dailyTarget <= 0) return "none";
+  const ratio = consumedSoFar / dailyTarget;
+  if (ratio >= 1) return "over";
+  if (ratio >= 0.75) return "watch";
+  return "none";
+}
