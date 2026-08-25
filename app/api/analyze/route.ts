@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { WAJBTI_SYSTEM_PROMPT } from "@/lib/systemPrompt";
 import { findSimilarCorrections } from "@/lib/corrections";
 
@@ -25,6 +28,18 @@ export async function POST(req: NextRequest) {
       description: description || "",
     });
 
+    // 1b) لو المستخدم مسجل دخول وحدد حالة حمل/رضاعة بملفه، نمرر هاي المعلومة
+    // عشان النصيحة والتحذيرات الغذائية تراعيها.
+    let pregnancyStatus: string | null = null;
+    const session = await getServerSession(authOptions).catch(() => null);
+    const sessionUserId = (session?.user as { id?: string } | undefined)?.id;
+    if (sessionUserId) {
+      const profile = await prisma.profile.findUnique({ where: { userId: sessionUserId } });
+      if (profile?.pregnancyStatus && profile.pregnancyStatus !== "none") {
+        pregnancyStatus = profile.pregnancyStatus;
+      }
+    }
+
     // 2) نبني محتوى الرسالة للـ API
     const contentBlocks: Anthropic.MessageParam["content"] = [];
 
@@ -46,6 +61,14 @@ export async function POST(req: NextRequest) {
     if (diningMode) {
       textPrompt +=
         "\n\nملاحظة سياق: هاي الوجبة من برا البيت (مطعم/بوفيه/عزومة) - المستخدم ما طبخها بنفسه وما بيعرف تفاصيل الوصفة بدقة. وسّع هامش تقديرك خصوصاً للزيت/السمن/الصوصات المخفية، واذكر بوضوح إن دقة التقدير أقل من وجبة بيتية.";
+    }
+    if (pregnancyStatus === "pregnant") {
+      textPrompt +=
+        "\n\nملاحظة سياق: المستخدمة حامل حالياً. لو في بالوجبة أي عنصر غير آمن بالحمل (بيض نيء/سائل، لحم أو سمك نيء أو غير مطبوخ جيداً، أجبان غير مبسترة، كمية كبيرة من الكافيين)، نبّهها بلطف ضمن ai_nutritionist_tip.";
+    }
+    if (pregnancyStatus === "breastfeeding") {
+      textPrompt +=
+        "\n\nملاحظة سياق: المستخدمة مرضعة حالياً. راعِ هيك بنصيحتك (احتياج غذائي إضافي، سوائل).";
     }
     if (retrievedCorrections.length > 0) {
       textPrompt += `\n\nretrieved_corrections: ${JSON.stringify(retrievedCorrections)}`;

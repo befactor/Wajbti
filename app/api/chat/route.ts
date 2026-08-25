@@ -44,6 +44,8 @@ async function buildUserContext(userId: string): Promise<string> {
     if (profile.weightKg) lines.push(`الوزن: ${profile.weightKg} كغ`);
     if (profile.heightCm) lines.push(`الطول: ${profile.heightCm} سم`);
     if (profile.goal) lines.push(`الهدف: ${profile.goal}`);
+    if (profile.pregnancyStatus === "pregnant") lines.push("المستخدمة حامل حالياً - راعِ ذلك بالنصائح الغذائية وحذّرها بلطف من أي أطعمة غير آمنة بالحمل لو مرتبطة بسؤالها.");
+    if (profile.pregnancyStatus === "breastfeeding") lines.push("المستخدمة مرضعة حالياً - راعِ احتياجها الغذائي الإضافي بالنصائح.");
     if (profile.tdee) lines.push(`احتياجه اليومي (TDEE): ${Math.round(profile.tdee)} kcal`);
     if (profile.dailyCalorieTarget)
       lines.push(`هدف السعرات اليومي: ${Math.round(profile.dailyCalorieTarget)} kcal`);

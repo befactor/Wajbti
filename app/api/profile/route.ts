@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import {
   ActivityLevel,
   Goal,
+  PregnancyStatus,
   Sex,
   calculateBMR,
   calculateTDEE,
@@ -13,6 +14,8 @@ import {
   calculateDailyCalorieTarget,
   calculateDailyWaterTargetMl,
 } from "@/lib/nutrition";
+
+const VALID_PREGNANCY_STATUSES: PregnancyStatus[] = ["none", "pregnant", "breastfeeding"];
 
 async function requireUserId() {
   const session = await getServerSession(authOptions);
@@ -40,6 +43,12 @@ export async function POST(req: NextRequest) {
   const activityLevel = body.activityLevel as ActivityLevel;
   const goal = body.goal as Goal;
   const ramadanMode = Boolean(body.ramadanMode);
+  const pregnancyStatusRaw = body.pregnancyStatus as PregnancyStatus;
+  // Only meaningful for female profiles - anything else is normalized to "none".
+  const pregnancyStatus: PregnancyStatus =
+    sex === "female" && VALID_PREGNANCY_STATUSES.includes(pregnancyStatusRaw)
+      ? pregnancyStatusRaw
+      : "none";
 
   if (
     !sex ||
@@ -57,7 +66,7 @@ export async function POST(req: NextRequest) {
 
   const bmr = calculateBMR({ sex, weightKg, heightCm, ageYears });
   const tdee = calculateTDEE(bmr, activityLevel);
-  const dailyCalorieTarget = calculateDailyCalorieTarget(tdee, goal);
+  const dailyCalorieTarget = calculateDailyCalorieTarget(tdee, goal, pregnancyStatus);
   const dailyWaterTargetMl = calculateDailyWaterTargetMl(weightKg, activityLevel);
   const bmi = calculateBMI(weightKg, heightCm);
   const bmiCategory = classifyBMI(bmi);
@@ -72,6 +81,7 @@ export async function POST(req: NextRequest) {
       weightKg,
       activityLevel,
       goal,
+      pregnancyStatus,
       bmr,
       tdee,
       dailyCalorieTarget,
@@ -85,6 +95,7 @@ export async function POST(req: NextRequest) {
       weightKg,
       activityLevel,
       goal,
+      pregnancyStatus,
       bmr,
       tdee,
       dailyCalorieTarget,

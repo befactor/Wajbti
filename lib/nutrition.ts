@@ -1,6 +1,14 @@
 export type Sex = "male" | "female";
 export type ActivityLevel = "sedentary" | "light" | "moderate" | "active" | "very_active";
 export type Goal = "lose" | "maintain" | "gain";
+export type PregnancyStatus = "none" | "pregnant" | "breastfeeding";
+
+// Extra daily calories per general prenatal/postpartum nutrition guidance
+// (flat estimate, not trimester-specific - this app isn't a clinical tool).
+const PREGNANCY_CALORIE_BONUS: Record<Exclude<PregnancyStatus, "none">, number> = {
+  pregnant: 340,
+  breastfeeding: 500,
+};
 
 export const ACTIVITY_FACTORS: Record<ActivityLevel, number> = {
   sedentary: 1.2,
@@ -52,7 +60,16 @@ export function classifyBMI(bmi: number): BMICategory {
 // nutrition guardrails (never more, unless a clinician says otherwise).
 const CALORIE_ADJUSTMENT = 400;
 
-export function calculateDailyCalorieTarget(tdee: number, goal: Goal): number {
+export function calculateDailyCalorieTarget(
+  tdee: number,
+  goal: Goal,
+  pregnancyStatus: PregnancyStatus = "none"
+): number {
+  // Pregnancy/breastfeeding: never diet down, regardless of the selected
+  // goal - a calorie deficit isn't safe here without clinical supervision.
+  if (pregnancyStatus !== "none") {
+    return Math.round(tdee + PREGNANCY_CALORIE_BONUS[pregnancyStatus]);
+  }
   if (goal === "lose") return Math.round(tdee - CALORIE_ADJUSTMENT);
   if (goal === "gain") return Math.round(tdee + CALORIE_ADJUSTMENT);
   return Math.round(tdee);

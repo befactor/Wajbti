@@ -6,6 +6,7 @@ import { dateStrToUTCMidnight, localDateStr } from "@/lib/date";
 import {
   ActivityLevel,
   Goal,
+  PregnancyStatus,
   Sex,
   calculateBMR,
   calculateTDEE,
@@ -69,7 +70,11 @@ export async function POST(req: NextRequest) {
       ageYears: profile.ageYears,
     });
     const tdee = calculateTDEE(bmr, profile.activityLevel as ActivityLevel);
-    const dailyCalorieTarget = calculateDailyCalorieTarget(tdee, profile.goal as Goal);
+    const dailyCalorieTarget = calculateDailyCalorieTarget(
+      tdee,
+      profile.goal as Goal,
+      profile.pregnancyStatus as PregnancyStatus
+    );
     const dailyWaterTargetMl = calculateDailyWaterTargetMl(weightKg, profile.activityLevel as ActivityLevel);
 
     updatedProfile = await prisma.profile.update({

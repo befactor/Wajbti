@@ -85,6 +85,7 @@ model Profile {
   weightKg      Float?
   activityLevel String? // sedentary | light | moderate | active | very_active
   goal          String? // lose | maintain | gain
+  pregnancyStatus String @default("none") // none | pregnant | breastfeeding (female only)
 
   bmr                Float?
   tdee               Float?

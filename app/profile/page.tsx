@@ -13,6 +13,7 @@ type ProfileData = {
   weightKg: number;
   activityLevel: "sedentary" | "light" | "moderate" | "active" | "very_active";
   goal: "lose" | "maintain" | "gain";
+  pregnancyStatus?: "none" | "pregnant" | "breastfeeding";
   bmr?: number;
   tdee?: number;
   dailyCalorieTarget?: number;
@@ -22,6 +23,7 @@ type ProfileData = {
 
 const ACTIVITY_OPTIONS = ["sedentary", "light", "moderate", "active", "very_active"] as const;
 const GOAL_OPTIONS = ["lose", "maintain", "gain"] as const;
+const PREGNANCY_OPTIONS = ["none", "pregnant", "breastfeeding"] as const;
 
 export default function ProfilePage() {
   const [lang, setLang] = useState<Lang>("ar");
@@ -160,7 +162,13 @@ export default function ProfilePage() {
           <label>{tp.sex}</label>
           <select
             value={form.sex || "male"}
-            onChange={(e) => setForm({ ...form, sex: e.target.value as ProfileData["sex"] })}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                sex: e.target.value as ProfileData["sex"],
+                pregnancyStatus: e.target.value === "female" ? form.pregnancyStatus : "none",
+              })
+            }
           >
             <option value="male">{tp.male}</option>
             <option value="female">{tp.female}</option>
@@ -232,6 +240,27 @@ export default function ProfilePage() {
             ))}
           </select>
         </div>
+
+        {form.sex === "female" && (
+          <div className="form-field">
+            <label>{tp.pregnancyStatus}</label>
+            <select
+              value={form.pregnancyStatus || "none"}
+              onChange={(e) =>
+                setForm({ ...form, pregnancyStatus: e.target.value as ProfileData["pregnancyStatus"] })
+              }
+            >
+              {PREGNANCY_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {tp[`pregnancy_${opt}` as keyof typeof tp]}
+                </option>
+              ))}
+            </select>
+            {form.pregnancyStatus && form.pregnancyStatus !== "none" && (
+              <p className="hint">{tp.pregnancyStatusHint}</p>
+            )}
+          </div>
+        )}
 
         <div className="form-field">
           <label>
