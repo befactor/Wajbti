@@ -139,12 +139,14 @@ export default function ProfilePage() {
   return (
     <div dir={t.dir} className="container">
       <div className="top-nav">
-        <span>{session?.user?.name || session?.user?.email}</span>
-        <button onClick={() => signOut({ callbackUrl: "/" })}>{t.auth.signOut}</button>
+        <div className="top-nav-auth">
+          <span>{session?.user?.name || session?.user?.email}</span>
+          <button onClick={() => signOut({ callbackUrl: "/" })}>{t.auth.signOut}</button>
+        </div>
+        <button className="lang-toggle-inline" onClick={() => setLang(lang === "ar" ? "en" : "ar")}>
+          {lang === "ar" ? "English" : "العربية"}
+        </button>
       </div>
-      <button className="lang-toggle" onClick={() => setLang(lang === "ar" ? "en" : "ar")}>
-        {lang === "ar" ? "English" : "العربية"}
-      </button>
 
       <div className="brand">
         <div className="brand-mark" />

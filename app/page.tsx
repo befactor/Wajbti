@@ -216,21 +216,22 @@ export default function Home() {
 
   return (
     <div dir={t.dir} className="container">
-      <button className="lang-toggle" onClick={() => setLang(lang === "ar" ? "en" : "ar")}>
-        {lang === "ar" ? "English" : "العربية"}
-      </button>
-
       <div className="top-nav">
-        {status === "authenticated" ? (
-          <>
-            <span>{session.user?.name || session.user?.email}</span>
-            <button onClick={() => signOut({ callbackUrl: "/" })}>{t.auth.signOut}</button>
-          </>
-        ) : status === "unauthenticated" ? (
-          <Link href="/auth/signin">{t.auth.signInCta}</Link>
-        ) : (
-          <span />
-        )}
+        <div className="top-nav-auth">
+          {status === "authenticated" ? (
+            <>
+              <span>{session.user?.name || session.user?.email}</span>
+              <button onClick={() => signOut({ callbackUrl: "/" })}>{t.auth.signOut}</button>
+            </>
+          ) : status === "unauthenticated" ? (
+            <Link href="/auth/signin">{t.auth.signInCta}</Link>
+          ) : (
+            <span />
+          )}
+        </div>
+        <button className="lang-toggle-inline" onClick={() => setLang(lang === "ar" ? "en" : "ar")}>
+          {lang === "ar" ? "English" : "العربية"}
+        </button>
       </div>
 
       <div className="brand">
