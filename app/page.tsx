@@ -42,6 +42,8 @@ type AnalysisResult = {
   clarification_question?: string;
 };
 
+type ClarificationTurn = { question: string; answer: string };
+
 type MealSlot = "breakfast" | "lunch" | "dinner" | "snack" | "suhoor" | "iftar";
 
 type SpeechRecognitionLike = {
@@ -71,6 +73,9 @@ export default function Home() {
   const [imageMediaType, setImageMediaType] = useState<string>("image/jpeg");
   const [diningMode, setDiningMode] = useState(false);
   const [ramadanMode, setRamadanMode] = useState(false);
+  const [clarificationHistory, setClarificationHistory] = useState<ClarificationTurn[]>([]);
+  const [clarificationAnswer, setClarificationAnswer] = useState("");
+  const [wantsToAddToDiary, setWantsToAddToDiary] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -138,12 +143,13 @@ export default function Home() {
     setImageBase64(null);
   }
 
-  async function analyze() {
+  async function runAnalysis(history: ClarificationTurn[]) {
     if (!description.trim() && !imageBase64) return;
     setLoading(true);
     setError("");
     setResult(null);
     setSavedToDiary(false);
+    setWantsToAddToDiary(null);
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
@@ -153,6 +159,7 @@ export default function Home() {
           imageBase64: imageBase64 || undefined,
           mediaType: imageBase64 ? imageMediaType : undefined,
           diningMode,
+          clarificationHistory: history.length > 0 ? history : undefined,
         }),
       });
       const data = await res.json();
@@ -166,6 +173,26 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  }
+
+  // Fresh analysis: starts a new clarification thread.
+  async function analyze() {
+    setClarificationHistory([]);
+    await runAnalysis([]);
+  }
+
+  // Continue an in-progress clarification: answer the AI's question and
+  // re-analyze with the accumulated Q&A as extra context. May come back
+  // with another question, or a full result once it has enough to go on.
+  async function submitClarification() {
+    if (!result?.clarification_question || !clarificationAnswer.trim()) return;
+    const nextHistory = [
+      ...clarificationHistory,
+      { question: result.clarification_question, answer: clarificationAnswer.trim() },
+    ];
+    setClarificationHistory(nextHistory);
+    setClarificationAnswer("");
+    await runAnalysis(nextHistory);
   }
 
   async function sendFeedback(correct: boolean) {
@@ -310,8 +337,40 @@ export default function Home() {
 
       {result && result.needs_clarification && (
         <div className="tip-card">
-          <p>{result.clarification_question}</p>
-          <button className="analyze-cta" onClick={() => setResult(null)}>
+          {clarificationHistory.length > 0 && (
+            <div className="clarification-history">
+              {clarificationHistory.map((turn, i) => (
+                <p key={i} className="clarification-turn">
+                  <strong>{turn.question}</strong>
+                  <br />
+                  {turn.answer}
+                </p>
+              ))}
+            </div>
+          )}
+          <p className="clarification-question">❓ {result.clarification_question}</p>
+          <div className="desc-input">
+            <input
+              type="text"
+              placeholder={t.clarificationPlaceholder}
+              value={clarificationAnswer}
+              onChange={(e) => setClarificationAnswer(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && submitClarification()}
+            />
+          </div>
+          {error && <p style={{ color: "var(--sumac)", fontSize: 13, marginBottom: 10 }}>{error}</p>}
+          <button className="analyze-cta" onClick={submitClarification} disabled={!clarificationAnswer.trim()}>
+            {t.clarificationSubmit}
+          </button>
+          <button
+            className="analyze-cta"
+            style={{ background: "var(--card)", color: "var(--tanoor)", border: "1px solid var(--line)" }}
+            onClick={() => {
+              setResult(null);
+              setClarificationHistory([]);
+              setClarificationAnswer("");
+            }}
+          >
             {t.newMeal}
           </button>
         </div>
@@ -404,7 +463,9 @@ export default function Home() {
                 <p style={{ textAlign: "center", color: "var(--zaatar)", fontWeight: 700, fontSize: 13 }}>
                   ✓ {t.addedToDiary}
                 </p>
-              ) : (
+              ) : wantsToAddToDiary === false ? (
+                <p style={{ textAlign: "center", color: "var(--taupe)", fontSize: 13 }}>{t.skippedDiary}</p>
+              ) : wantsToAddToDiary === true ? (
                 <>
                   <div className="form-field">
                     <label>{t.addToDiaryTitle}</label>
@@ -431,6 +492,16 @@ export default function Home() {
                     {t.addToDiaryCta}
                   </button>
                 </>
+              ) : (
+                <>
+                  <p style={{ textAlign: "center", fontSize: 13.5, fontWeight: 700, marginBottom: 12 }}>
+                    {t.addToDiaryQuestion}
+                  </p>
+                  <div className="feedback-row">
+                    <button onClick={() => setWantsToAddToDiary(true)}>{t.yesAdd}</button>
+                    <button onClick={() => setWantsToAddToDiary(false)}>{t.noJustChecking}</button>
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -442,6 +513,9 @@ export default function Home() {
               setDescription("");
               setSavedToDiary(false);
               setDiningMode(false);
+              setClarificationHistory([]);
+              setClarificationAnswer("");
+              setWantsToAddToDiary(null);
               clearImage();
             }}
           >

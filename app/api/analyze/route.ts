@@ -7,11 +7,11 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-// POST body: { description?: string, imageBase64?: string, mediaType?: string, voiceNote?: string, diningMode?: boolean, userId?: string }
+// POST body: { description?: string, imageBase64?: string, mediaType?: string, voiceNote?: string, diningMode?: boolean, clarificationHistory?: {question: string, answer: string}[], userId?: string }
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { description, imageBase64, mediaType, voiceNote, diningMode, userId } = body;
+    const { description, imageBase64, mediaType, voiceNote, diningMode, clarificationHistory, userId } = body;
 
     if (!description && !imageBase64) {
       return NextResponse.json(
@@ -49,6 +49,18 @@ export async function POST(req: NextRequest) {
     }
     if (retrievedCorrections.length > 0) {
       textPrompt += `\n\nretrieved_corrections: ${JSON.stringify(retrievedCorrections)}`;
+    }
+    if (Array.isArray(clarificationHistory) && clarificationHistory.length > 0) {
+      textPrompt += "\n\nتوضيحات إضافية من المستخدم رداً على أسئلتك السابقة:";
+      for (const item of clarificationHistory) {
+        textPrompt += `\nسؤالك: ${item.question}\nجواب المستخدم: ${item.answer}`;
+      }
+      textPrompt +=
+        "\n\nاستخدم هاي التوضيحات لتحسين تقديرك. لو صارت المعلومات كافية، أرجع تحليل كامل (مو سؤال توضيحي جديد) إلا إذا كانت ضرورية فعلاً معلومة تانية أساسية ناقصة.";
+      if (clarificationHistory.length >= 3) {
+        textPrompt +=
+          "\n\nملاحظة مهمة: سألت المستخدم 3 أسئلة توضيحية أصلاً - لا تسأل سؤال رابع. أعطِ أفضل تقدير ممكن بناءً على كل المعلومات المتوفرة لحد الآن، حتى لو الثقة متوسطة، واذكر مستوى الثقة confidence_score بصدق.";
+      }
     }
 
     contentBlocks.push({ type: "text", text: textPrompt });
