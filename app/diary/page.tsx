@@ -24,6 +24,19 @@ type MealEntry = {
   diningContext: string | null;
 };
 
+type FavoriteMeal = {
+  id: string;
+  foodName: string;
+  items: MealItem[];
+  totalCalories: number;
+  totalProteinG: number;
+  totalCarbsG: number;
+  totalFatG: number;
+  totalFiberG: number | null;
+  totalSugarG: number | null;
+  totalSodiumMg: number | null;
+};
+
 const STANDARD_SLOTS: MealSlot[] = ["breakfast", "lunch", "dinner", "snack"];
 const RAMADAN_SLOTS: MealSlot[] = ["suhoor", "iftar"];
 
@@ -40,6 +53,10 @@ export default function DiaryPage() {
   const [ramadanMode, setRamadanMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [streak, setStreak] = useState(0);
+  const [favorites, setFavorites] = useState<FavoriteMeal[]>([]);
+  const [favoriteSlot, setFavoriteSlot] = useState<MealSlot>("breakfast");
+  const [loggingFavoriteId, setLoggingFavoriteId] = useState<string | null>(null);
+  const [justLoggedFavoriteId, setJustLoggedFavoriteId] = useState<string | null>(null);
   const [notifPermission, setNotifPermission] = useState<NotificationPermission | "unsupported">(
     "default"
   );
@@ -68,10 +85,61 @@ export default function DiaryPage() {
         setMeals(mealsData.meals || []);
         setHasProfile(!!profileData.profile);
         setCalorieTarget(profileData.profile?.dailyCalorieTarget ?? null);
-        setRamadanMode(!!profileData.profile?.ramadanMode);
+        const isRamadan = !!profileData.profile?.ramadanMode;
+        setRamadanMode(isRamadan);
+        setFavoriteSlot(isRamadan ? "suhoor" : "breakfast");
       })
       .finally(() => setLoading(false));
   }, [status, dateStr]);
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    fetch("/api/favorites")
+      .then((r) => r.json())
+      .then((data) => setFavorites(data.favorites || []))
+      .catch(() => {});
+  }, [status]);
+
+  async function logFavorite(fav: FavoriteMeal) {
+    setLoggingFavoriteId(fav.id);
+    try {
+      const res = await fetch("/api/meals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slot: favoriteSlot,
+          date: dateStr,
+          description: fav.foodName,
+          inputType: "text",
+          items: fav.items,
+          totals: {
+            calories: fav.totalCalories,
+            protein_g: fav.totalProteinG,
+            carbs_g: fav.totalCarbsG,
+            fat_g: fav.totalFatG,
+            fiber_g: fav.totalFiberG,
+            sugar_g: fav.totalSugarG,
+            sodium_mg: fav.totalSodiumMg,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (data.meal) {
+        setMeals((prev) => [...prev, data.meal]);
+        setJustLoggedFavoriteId(fav.id);
+        setTimeout(() => setJustLoggedFavoriteId((cur) => (cur === fav.id ? null : cur)), 2000);
+      }
+    } catch {
+      // no-op: user can retry
+    } finally {
+      setLoggingFavoriteId(null);
+    }
+  }
+
+  async function deleteFavorite(id: string) {
+    setFavorites((prev) => prev.filter((f) => f.id !== id));
+    await fetch(`/api/favorites/${id}`, { method: "DELETE" }).catch(() => {});
+  }
 
   // Best-effort "you haven't logged anything today" nudge - same in-tab
   // notification approach as the water reminders (only fires while a tab is
@@ -279,6 +347,51 @@ export default function DiaryPage() {
               {adaptiveTip === "watch" && td.adaptiveWatch}
               {adaptiveTip === "good" && td.adaptiveGood}
               {adaptiveTip === "over" && td.adaptiveOver}
+            </div>
+          )}
+
+          {favorites.length > 0 && (
+            <div className="tip-card">
+              <h3>{td.favoritesTitle}</h3>
+              <div className="form-field">
+                <select value={favoriteSlot} onChange={(e) => setFavoriteSlot(e.target.value as MealSlot)}>
+                  {SLOT_ORDER.map((slot) => (
+                    <option key={slot} value={slot}>
+                      {td.slots[slot]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {favorites.map((fav) => (
+                <div key={fav.id} className="diary-meal-row">
+                  <div>
+                    <strong>{fav.foodName}</strong>
+                    <div className="diary-meal-cal">{Math.round(fav.totalCalories)} kcal</div>
+                  </div>
+                  {justLoggedFavoriteId === fav.id ? (
+                    <span style={{ color: "var(--zaatar)", fontWeight: 700, fontSize: 12.5 }}>
+                      {td.favoriteLogged}
+                    </span>
+                  ) : (
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <button
+                        onClick={() => logFavorite(fav)}
+                        disabled={loggingFavoriteId === fav.id}
+                        style={{ width: "auto" }}
+                      >
+                        {td.logFavorite}
+                      </button>
+                      <button
+                        className="diary-delete-btn"
+                        onClick={() => deleteFavorite(fav.id)}
+                        aria-label={td.delete}
+                      >
+                        🗑
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
 

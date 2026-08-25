@@ -41,10 +41,21 @@ export async function POST(req: NextRequest) {
   const days = Math.min(Math.max(Number(body.days) || 7, 1), 7);
 
   try {
+    const favorites = await prisma.favoriteMeal.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      select: { foodName: true },
+    });
+
     let userPrompt = `ابنِ خطة طعام لـ ${days} يوم/أيام.
 targetCalories: ${Math.round(profile.dailyCalorieTarget)}
 goal: ${profile.goal}
 activityLevel: ${profile.activityLevel}`;
+
+    if (favorites.length > 0) {
+      userPrompt += `\nfavorite_meals: ${JSON.stringify(favorites.map((f) => f.foodName))}`;
+    }
 
     if (profile.pregnancyStatus === "pregnant") {
       userPrompt +=

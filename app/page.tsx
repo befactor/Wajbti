@@ -77,6 +77,8 @@ export default function Home() {
   const [clarificationAnswer, setClarificationAnswer] = useState("");
   const [wantsToAddToDiary, setWantsToAddToDiary] = useState<boolean | null>(null);
   const [feedbackGiven, setFeedbackGiven] = useState(false);
+  const [savingFavorite, setSavingFavorite] = useState(false);
+  const [savedToFavorites, setSavedToFavorites] = useState(false);
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -174,6 +176,7 @@ export default function Home() {
     setSavedToDiary(false);
     setWantsToAddToDiary(null);
     setFeedbackGiven(false);
+    setSavedToFavorites(false);
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
@@ -265,6 +268,27 @@ export default function Home() {
       // no-op: user can retry
     } finally {
       setSavingMeal(false);
+    }
+  }
+
+  async function addToFavorites() {
+    if (!result) return;
+    setSavingFavorite(true);
+    try {
+      const foodName =
+        result.items?.map((i) => (lang === "ar" ? i.food_name : i.food_name_en || i.food_name)).join("، ") ||
+        description;
+      const res = await fetch("/api/favorites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ foodName, items: result.items, totals: result.totals }),
+      });
+      const data = await res.json();
+      if (!data.error) setSavedToFavorites(true);
+    } catch {
+      // no-op: user can retry
+    } finally {
+      setSavingFavorite(false);
     }
   }
 
@@ -539,6 +563,22 @@ export default function Home() {
             </div>
           )}
 
+          {status === "authenticated" &&
+            (savedToFavorites ? (
+              <p style={{ textAlign: "center", color: "var(--zaatar)", fontWeight: 700, fontSize: 13 }}>
+                {t.addedToFavorites}
+              </p>
+            ) : (
+              <button
+                className="analyze-cta"
+                style={{ background: "var(--card)", color: "var(--tanoor)", border: "1px solid var(--line)" }}
+                onClick={addToFavorites}
+                disabled={savingFavorite}
+              >
+                {t.addToFavorites}
+              </button>
+            ))}
+
           <button
             className="analyze-cta"
             onClick={() => {
@@ -549,6 +589,7 @@ export default function Home() {
               setClarificationHistory([]);
               setClarificationAnswer("");
               setWantsToAddToDiary(null);
+              setSavedToFavorites(false);
               clearImage();
             }}
           >

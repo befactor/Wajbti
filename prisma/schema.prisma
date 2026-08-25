@@ -34,6 +34,7 @@ model User {
   mealPlans     MealPlan[]
   weightLogs    WeightLog[]
   chatMessages  ChatMessage[]
+  favoriteMeals FavoriteMeal[]
 }
 
 model Account {
@@ -156,6 +157,29 @@ model MealEntry {
   createdAt DateTime @default(now())
 
   @@index([userId, date])
+}
+
+// ---------- Favorite meals (quick re-log + meal-plan personalization) ----------
+
+model FavoriteMeal {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  foodName String // display name (joined item names or original description)
+  items    Json // full analyzed items array, same shape as MealEntry.items
+
+  totalCalories Float
+  totalProteinG Float
+  totalCarbsG   Float
+  totalFatG     Float
+  totalFiberG   Float?
+  totalSugarG   Float?
+  totalSodiumMg Float?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 // ---------- Correction feedback loop (RAG) ----------
