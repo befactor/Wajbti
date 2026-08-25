@@ -86,7 +86,13 @@ export async function POST(req: NextRequest) {
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 800,
-      system: `${NUTRITIONIST_CHAT_SYSTEM_PROMPT}\n\nuser_context:\n${userContext}`,
+      // Split so the static instructions (identical for every user, every
+      // request) are cached separately from the per-user context, which
+      // changes every call and would otherwise bust the cache each time.
+      system: [
+        { type: "text", text: NUTRITIONIST_CHAT_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
+        { type: "text", text: `user_context:\n${userContext}` },
+      ],
       messages: [
         ...orderedHistory.map((m) => ({
           role: m.role as "user" | "assistant",

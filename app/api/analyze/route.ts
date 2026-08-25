@@ -92,7 +92,10 @@ export async function POST(req: NextRequest) {
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 1200,
-      system: WAJBTI_SYSTEM_PROMPT,
+      // Cached: identical for every analyze call across every user, so this
+      // stops being billed at full price after the first request in the
+      // cache window (huge win given this is the highest-volume route).
+      system: [{ type: "text", text: WAJBTI_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: contentBlocks }],
     });
 

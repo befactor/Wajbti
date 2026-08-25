@@ -77,7 +77,8 @@ activityLevel: ${profile.activityLevel}`;
       // tokens as JSON; too low a ceiling here silently truncates the
       // response and breaks JSON.parse below.
       max_tokens: 8000,
-      system: MEAL_PLAN_SYSTEM_PROMPT,
+      // Cached: same prompt for every plan generation regardless of user.
+      system: [{ type: "text", text: MEAL_PLAN_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: userPrompt }],
     });
 
