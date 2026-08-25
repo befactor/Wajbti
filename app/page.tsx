@@ -127,15 +127,37 @@ export default function Home() {
   function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = "";
+
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result as string;
-      setImagePreview(dataUrl);
-      setImageBase64(dataUrl.split(",")[1] || null);
-      setImageMediaType(file.type || "image/jpeg");
+      const img = new Image();
+      img.onload = () => {
+        // Phone camera photos can be several MB, which blows past the
+        // serverless function's request body limit once base64-encoded.
+        // Downscale and re-encode as JPEG before sending.
+        const maxDim = 1600;
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          setImagePreview(dataUrl);
+          setImageBase64(dataUrl.split(",")[1] || null);
+          setImageMediaType(file.type || "image/jpeg");
+          return;
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.8);
+        setImagePreview(compressedDataUrl);
+        setImageBase64(compressedDataUrl.split(",")[1] || null);
+        setImageMediaType("image/jpeg");
+      };
+      img.src = dataUrl;
     };
     reader.readAsDataURL(file);
-    e.target.value = "";
   }
 
   function clearImage() {
