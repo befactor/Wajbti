@@ -23,11 +23,23 @@ type PlanDay = {
 
 type MealPlan = {
   id: string;
+  startDate: string;
   days: PlanDay[];
   notes: string | null;
   goal: string;
   targetCalories: number;
 };
+
+const CUISINE_CHIPS = [
+  "cuisineShami",
+  "cuisineGulf",
+  "cuisineEgyptian",
+  "cuisineMaghrebi",
+  "cuisineLight",
+  "cuisineHighProtein",
+] as const;
+
+const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 export default function PlanPage() {
   const [lang, setLang] = useState<Lang>("ar");
@@ -40,6 +52,9 @@ export default function PlanPage() {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
+  const [showPreferences, setShowPreferences] = useState(false);
+  const [selectedChips, setSelectedChips] = useState<string[]>([]);
+  const [preferencesText, setPreferencesText] = useState("");
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -59,16 +74,22 @@ export default function PlanPage() {
     setGenerating(true);
     setError("");
     try {
+      const preferences = [...selectedChips.map((key) => tp[key as keyof typeof tp]), preferencesText.trim()]
+        .filter(Boolean)
+        .join("، ");
       const res = await fetch("/api/meal-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ days: 7 }),
+        body: JSON.stringify({ days: 7, force: true, preferences: preferences || undefined }),
       });
       const data = await res.json();
       if (data.error) {
         setError(data.error);
       } else {
         setPlan(data.plan);
+        setShowPreferences(false);
+        setSelectedChips([]);
+        setPreferencesText("");
       }
     } catch {
       setError(tp.title);
@@ -76,6 +97,12 @@ export default function PlanPage() {
       setGenerating(false);
     }
   }
+
+  function toggleChip(key: string) {
+    setSelectedChips((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+  }
+
+  const planIsActive = !!plan && Date.now() - new Date(plan.startDate).getTime() < ONE_WEEK_MS;
 
   if (status === "loading" || loading) {
     return (
@@ -130,9 +157,59 @@ export default function PlanPage() {
         <>
           {error && <p className="error-text">{error}</p>}
 
-          <button className="analyze-cta" onClick={generatePlan} disabled={generating}>
-            {generating ? tp.generating : tp.generate}
-          </button>
+          {showPreferences ? (
+            <div className="form-card">
+              <label style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--taupe)", marginBottom: 10 }}>
+                {tp.preferencesTitle}
+              </label>
+              <div className="feedback-row" style={{ flexWrap: "wrap" }}>
+                {CUISINE_CHIPS.map((key) => (
+                  <button
+                    key={key}
+                    style={{
+                      flex: "1 1 auto",
+                      minWidth: 80,
+                      background: selectedChips.includes(key) ? "var(--saffron)" : "var(--card)",
+                    }}
+                    onClick={() => toggleChip(key)}
+                    disabled={generating}
+                  >
+                    {tp[key]}
+                  </button>
+                ))}
+              </div>
+              <div className="desc-input" style={{ marginTop: 10 }}>
+                <input
+                  type="text"
+                  placeholder={tp.preferencesPlaceholder}
+                  value={preferencesText}
+                  onChange={(e) => setPreferencesText(e.target.value)}
+                  disabled={generating}
+                />
+              </div>
+              <div className="feedback-row">
+                <button
+                  onClick={() => {
+                    setShowPreferences(false);
+                    setSelectedChips([]);
+                    setPreferencesText("");
+                  }}
+                  disabled={generating}
+                >
+                  {tp.preferencesCancel}
+                </button>
+                <button className="analyze-cta" onClick={generatePlan} disabled={generating} style={{ marginTop: 0 }}>
+                  {generating ? tp.generating : tp.preferencesConfirm}
+                </button>
+              </div>
+            </div>
+          ) : (
+            !plan || !planIsActive ? (
+              <button className="analyze-cta" onClick={() => setShowPreferences(true)}>
+                {tp.generate}
+              </button>
+            ) : null
+          )}
 
           {generating && (
             <div className="loading-box">
@@ -140,7 +217,7 @@ export default function PlanPage() {
             </div>
           )}
 
-          {!generating && !plan && (
+          {!generating && !showPreferences && !plan && (
             <p style={{ textAlign: "center", color: "var(--taupe)", fontSize: 13, marginTop: 20 }}>
               {tp.empty}
             </p>
@@ -173,6 +250,21 @@ export default function PlanPage() {
                   ))}
                 </div>
               ))}
+
+              {planIsActive && !showPreferences && (
+                <>
+                  <p style={{ textAlign: "center", color: "var(--taupe)", fontSize: 12.5, marginTop: 10 }}>
+                    {tp.activeNote}
+                  </p>
+                  <button
+                    className="analyze-cta"
+                    style={{ background: "var(--card)", color: "var(--tanoor)", border: "1px solid var(--line)" }}
+                    onClick={() => setShowPreferences(true)}
+                  >
+                    {tp.newPlan}
+                  </button>
+                </>
+              )}
             </>
           )}
         </>

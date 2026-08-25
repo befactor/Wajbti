@@ -39,6 +39,22 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}));
   const days = Math.min(Math.max(Number(body.days) || 7, 1), 7);
+  const force = Boolean(body.force);
+  const preferences = typeof body.preferences === "string" ? body.preferences.trim().slice(0, 300) : "";
+
+  // The plan is meant to stay fixed for a week - re-generating it on every
+  // click burns a full (expensive) API call for a near-identical result.
+  // Only regenerate early if the caller explicitly asks for a new plan.
+  const existingPlan = await prisma.mealPlan.findFirst({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+  });
+  const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
+  const existingPlanIsCurrent =
+    existingPlan && Date.now() - existingPlan.startDate.getTime() < oneWeekMs;
+  if (existingPlanIsCurrent && !force) {
+    return NextResponse.json({ plan: existingPlan, reused: true });
+  }
 
   try {
     const favorites = await prisma.favoriteMeal.findMany({
@@ -55,6 +71,10 @@ activityLevel: ${profile.activityLevel}`;
 
     if (favorites.length > 0) {
       userPrompt += `\nfavorite_meals: ${JSON.stringify(favorites.map((f) => f.foodName))}`;
+    }
+
+    if (preferences) {
+      userPrompt += `\n\nتفضيلات المستخدم لهاي الخطة تحديداً (بالإضافة لأكلاته المفضلة المذكورة فوق لو في): ${preferences}`;
     }
 
     if (profile.pregnancyStatus === "pregnant") {
