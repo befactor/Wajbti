@@ -40,6 +40,7 @@ type AnalysisResult = {
   medical_disclaimer_flag?: boolean;
   needs_clarification?: boolean;
   clarification_question?: string;
+  clarification_options?: string[];
 };
 
 type ClarificationTurn = { question: string; answer: string };
@@ -211,11 +212,12 @@ export default function Home() {
   // Continue an in-progress clarification: answer the AI's question and
   // re-analyze with the accumulated Q&A as extra context. May come back
   // with another question, or a full result once it has enough to go on.
-  async function submitClarification() {
-    if (!result?.clarification_question || !clarificationAnswer.trim()) return;
+  async function submitClarification(optionAnswer?: string) {
+    const answer = (optionAnswer ?? clarificationAnswer).trim();
+    if (!result?.clarification_question || !answer) return;
     const nextHistory = [
       ...clarificationHistory,
-      { question: result.clarification_question, answer: clarificationAnswer.trim() },
+      { question: result.clarification_question, answer },
     ];
     setClarificationHistory(nextHistory);
     setClarificationAnswer("");
@@ -400,6 +402,19 @@ export default function Home() {
             </div>
           )}
           <p className="clarification-question">❓ {result.clarification_question}</p>
+          {result.clarification_options && result.clarification_options.length > 0 && (
+            <div className="feedback-row" style={{ flexWrap: "wrap" }}>
+              {result.clarification_options.map((opt, i) => (
+                <button
+                  key={i}
+                  style={{ flex: "1 1 auto", minWidth: 90 }}
+                  onClick={() => submitClarification(opt)}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="desc-input">
             <input
               type="text"
@@ -410,7 +425,7 @@ export default function Home() {
             />
           </div>
           {error && <p style={{ color: "var(--sumac)", fontSize: 13, marginBottom: 10 }}>{error}</p>}
-          <button className="analyze-cta" onClick={submitClarification} disabled={!clarificationAnswer.trim()}>
+          <button className="analyze-cta" onClick={() => submitClarification()} disabled={!clarificationAnswer.trim()}>
             {t.clarificationSubmit}
           </button>
           <button
