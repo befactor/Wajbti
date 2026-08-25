@@ -76,6 +76,7 @@ export default function Home() {
   const [clarificationHistory, setClarificationHistory] = useState<ClarificationTurn[]>([]);
   const [clarificationAnswer, setClarificationAnswer] = useState("");
   const [wantsToAddToDiary, setWantsToAddToDiary] = useState<boolean | null>(null);
+  const [feedbackGiven, setFeedbackGiven] = useState(false);
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -172,6 +173,7 @@ export default function Home() {
     setResult(null);
     setSavedToDiary(false);
     setWantsToAddToDiary(null);
+    setFeedbackGiven(false);
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
@@ -219,7 +221,10 @@ export default function Home() {
 
   async function sendFeedback(correct: boolean) {
     if (!result) return;
-    if (correct) return; // ما في شي نعمله لو صح
+    if (correct) {
+      setFeedbackGiven(true);
+      return;
+    }
     // المستخدم يصحح اسم الأكلة بس - الأرقام (سعرات/وزن) مسؤولية النظام حصراً
     const correctedFoodName = window.prompt(
       lang === "ar" ? "شو اسم الأكلة الصحيح؟" : "What's the correct food name?"
@@ -233,7 +238,7 @@ export default function Home() {
         corrected_food_name: correctedFoodName,
       }),
     }).catch(() => {});
-    alert(lang === "ar" ? "يسلمو! سجلنا ملاحظتك" : "Thanks! Feedback recorded");
+    setFeedbackGiven(true);
   }
 
   async function addToDiary() {
@@ -474,10 +479,16 @@ export default function Home() {
             <p>{result.healthy_swap_suggestion}</p>
           </div>
 
-          <div className="feedback-row">
-            <button onClick={() => sendFeedback(true)}>{t.correct}</button>
-            <button onClick={() => sendFeedback(false)}>{t.fix}</button>
-          </div>
+          {feedbackGiven ? (
+            <p style={{ textAlign: "center", color: "var(--zaatar)", fontWeight: 700, fontSize: 13 }}>
+              ✓ {t.thanksFeedback}
+            </p>
+          ) : (
+            <div className="feedback-row">
+              <button onClick={() => sendFeedback(true)}>{t.correct}</button>
+              <button onClick={() => sendFeedback(false)}>{t.fix}</button>
+            </div>
+          )}
 
           {status === "authenticated" && (
             <div className="form-card">
