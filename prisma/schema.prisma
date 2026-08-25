@@ -237,6 +237,7 @@ model MealPlan {
   goal           String
   days           Json // array of { day_label, target_calories, meals: [...] }
   notes          String?
+  completedMeals Json   @default("[]") // array of "{dayIndex}-{slot}" keys the user checked off
 
   createdAt DateTime @default(now())
 }

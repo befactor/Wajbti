@@ -28,7 +28,19 @@ type MealPlan = {
   notes: string | null;
   goal: string;
   targetCalories: number;
+  completedMeals: string[];
 };
+
+function getCompletedFoodNames(plan: MealPlan | null): string[] {
+  if (!plan) return [];
+  const names = new Set<string>();
+  plan.days?.forEach((day, dayIdx) => {
+    day.meals?.forEach((meal) => {
+      if (plan.completedMeals?.includes(`${dayIdx}-${meal.slot}`)) names.add(meal.food_name);
+    });
+  });
+  return Array.from(names);
+}
 
 const CUISINE_CHIPS = [
   "cuisineShami",
@@ -55,6 +67,8 @@ export default function PlanPage() {
   const [showPreferences, setShowPreferences] = useState(false);
   const [selectedChips, setSelectedChips] = useState<string[]>([]);
   const [preferencesText, setPreferencesText] = useState("");
+  const [keepCandidates, setKeepCandidates] = useState<string[]>([]);
+  const [keepMeals, setKeepMeals] = useState<string[]>([]);
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -80,7 +94,12 @@ export default function PlanPage() {
       const res = await fetch("/api/meal-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ days: 7, force: true, preferences: preferences || undefined }),
+        body: JSON.stringify({
+          days: 7,
+          force: true,
+          preferences: preferences || undefined,
+          keepMeals: keepMeals.length > 0 ? keepMeals : undefined,
+        }),
       });
       const data = await res.json();
       if (data.error) {
@@ -90,6 +109,8 @@ export default function PlanPage() {
         setShowPreferences(false);
         setSelectedChips([]);
         setPreferencesText("");
+        setKeepCandidates([]);
+        setKeepMeals([]);
       }
     } catch {
       setError(tp.title);
@@ -100,6 +121,43 @@ export default function PlanPage() {
 
   function toggleChip(key: string) {
     setSelectedChips((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+  }
+
+  function toggleKeepMeal(name: string) {
+    setKeepMeals((prev) => (prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]));
+  }
+
+  function openPreferences() {
+    const candidates = getCompletedFoodNames(plan);
+    setKeepCandidates(candidates);
+    setKeepMeals(candidates);
+    setShowPreferences(true);
+  }
+
+  async function toggleMealDone(dayIndex: number, slot: string, completed: boolean) {
+    if (!plan) return;
+    const key = `${dayIndex}-${slot}`;
+    setPlan((prev) =>
+      prev
+        ? {
+            ...prev,
+            completedMeals: completed
+              ? [...(prev.completedMeals || []), key]
+              : (prev.completedMeals || []).filter((k) => k !== key),
+          }
+        : prev
+    );
+    try {
+      const res = await fetch("/api/meal-plan", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dayIndex, slot, completed }),
+      });
+      const data = await res.json();
+      if (data.plan) setPlan(data.plan);
+    } catch {
+      // leave the optimistic state - the user can just toggle again
+    }
   }
 
   const planIsActive = !!plan && Date.now() - new Date(plan.startDate).getTime() < ONE_WEEK_MS;
@@ -159,7 +217,30 @@ export default function PlanPage() {
 
           {showPreferences ? (
             <div className="form-card">
-              <label style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--taupe)", marginBottom: 10 }}>
+              {keepCandidates.length > 0 && (
+                <>
+                  <label style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--taupe)", marginBottom: 10 }}>
+                    {tp.keepMealsTitle}
+                  </label>
+                  <div className="feedback-row" style={{ flexWrap: "wrap" }}>
+                    {keepCandidates.map((name) => (
+                      <button
+                        key={name}
+                        style={{
+                          flex: "1 1 auto",
+                          minWidth: 80,
+                          background: keepMeals.includes(name) ? "var(--saffron)" : "var(--card)",
+                        }}
+                        onClick={() => toggleKeepMeal(name)}
+                        disabled={generating}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+              <label style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--taupe)", margin: "14px 0 10px" }}>
                 {tp.preferencesTitle}
               </label>
               <div className="feedback-row" style={{ flexWrap: "wrap" }}>
@@ -193,6 +274,8 @@ export default function PlanPage() {
                     setShowPreferences(false);
                     setSelectedChips([]);
                     setPreferencesText("");
+                    setKeepCandidates([]);
+                    setKeepMeals([]);
                   }}
                   disabled={generating}
                 >
@@ -205,7 +288,7 @@ export default function PlanPage() {
             </div>
           ) : (
             !plan || !planIsActive ? (
-              <button className="analyze-cta" onClick={() => setShowPreferences(true)}>
+              <button className="analyze-cta" onClick={openPreferences}>
                 {tp.generate}
               </button>
             ) : null
@@ -237,17 +320,30 @@ export default function PlanPage() {
                   <h3>
                     🗓️ {day.day_label} — {Math.round(day.target_calories)} kcal
                   </h3>
-                  {day.meals?.map((meal, mIdx) => (
-                    <div key={mIdx} className="diary-meal-row">
-                      <div>
-                        <strong>{t.diary.slots[meal.slot]}: {meal.food_name}</strong>
-                        <div className="diary-meal-cal">
-                          {Math.round(meal.calories)} kcal · {t.protein} {Math.round(meal.protein_g)}g ·{" "}
-                          {t.carbs} {Math.round(meal.carbs_g)}g · {t.fat} {Math.round(meal.fat_g)}g
-                        </div>
+                  {day.meals?.map((meal, mIdx) => {
+                    const isDone = plan.completedMeals?.includes(`${idx}-${meal.slot}`);
+                    return (
+                      <div key={mIdx} className="diary-meal-row">
+                        <label style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, cursor: "pointer" }}>
+                          <input
+                            type="checkbox"
+                            checked={!!isDone}
+                            onChange={(e) => toggleMealDone(idx, meal.slot, e.target.checked)}
+                            style={{ width: "auto", flexShrink: 0 }}
+                          />
+                          <div>
+                            <strong style={{ textDecoration: isDone ? "line-through" : "none", opacity: isDone ? 0.6 : 1 }}>
+                              {t.diary.slots[meal.slot]}: {meal.food_name}
+                            </strong>
+                            <div className="diary-meal-cal">
+                              {Math.round(meal.calories)} kcal · {t.protein} {Math.round(meal.protein_g)}g ·{" "}
+                              {t.carbs} {Math.round(meal.carbs_g)}g · {t.fat} {Math.round(meal.fat_g)}g
+                            </div>
+                          </div>
+                        </label>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ))}
 
@@ -259,7 +355,7 @@ export default function PlanPage() {
                   <button
                     className="analyze-cta"
                     style={{ background: "var(--card)", color: "var(--tanoor)", border: "1px solid var(--line)" }}
-                    onClick={() => setShowPreferences(true)}
+                    onClick={openPreferences}
                   >
                     {tp.newPlan}
                   </button>

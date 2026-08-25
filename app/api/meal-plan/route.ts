@@ -25,6 +25,69 @@ export async function GET() {
   return NextResponse.json({ plan });
 }
 
+type PlanMeal = {
+  slot: string;
+  food_name: string;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+};
+type PlanDay = { meals?: PlanMeal[] };
+
+export async function PATCH(req: NextRequest) {
+  const userId = await requireUserId();
+  if (!userId) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+
+  const body = await req.json().catch(() => ({}));
+  const dayIndex = Number(body.dayIndex);
+  const slot = typeof body.slot === "string" ? body.slot : "";
+  const completed = Boolean(body.completed);
+  if (!Number.isInteger(dayIndex) || dayIndex < 0 || !slot) {
+    return NextResponse.json({ error: "بيانات غير صحيحة" }, { status: 400 });
+  }
+
+  const plan = await prisma.mealPlan.findFirst({ where: { userId }, orderBy: { createdAt: "desc" } });
+  if (!plan) return NextResponse.json({ error: "ما في خطة حالياً" }, { status: 404 });
+
+  const days = (plan.days as unknown as PlanDay[]) || [];
+  const meal = days[dayIndex]?.meals?.find((m) => m.slot === slot);
+  if (!meal) return NextResponse.json({ error: "الوجبة غير موجودة بالخطة" }, { status: 404 });
+
+  const key = `${dayIndex}-${slot}`;
+  const current = ((plan.completedMeals as unknown as string[]) || []).filter((k) => k !== key);
+  const nextCompleted = completed ? [...current, key] : current;
+
+  // Checking a meal off is a "the user actually did and liked this" signal -
+  // fold it into their standing taste profile so future plans (and quick
+  // re-logging from the diary) lean on it, without needing to ask again.
+  if (completed) {
+    const alreadyFavorited = await prisma.favoriteMeal.findFirst({
+      where: { userId, foodName: meal.food_name },
+    });
+    if (!alreadyFavorited) {
+      await prisma.favoriteMeal.create({
+        data: {
+          userId,
+          foodName: meal.food_name,
+          items: [{ food_name: meal.food_name }],
+          totalCalories: meal.calories ?? 0,
+          totalProteinG: meal.protein_g ?? 0,
+          totalCarbsG: meal.carbs_g ?? 0,
+          totalFatG: meal.fat_g ?? 0,
+        },
+      });
+    }
+  }
+
+  const updatedPlan = await prisma.mealPlan.update({
+    where: { id: plan.id },
+    data: { completedMeals: nextCompleted },
+  });
+
+  return NextResponse.json({ plan: updatedPlan });
+}
+
 export async function POST(req: NextRequest) {
   const userId = await requireUserId();
   if (!userId) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
@@ -75,6 +138,13 @@ activityLevel: ${profile.activityLevel}`;
 
     if (preferences) {
       userPrompt += `\n\nتفضيلات المستخدم لهاي الخطة تحديداً (بالإضافة لأكلاته المفضلة المذكورة فوق لو في): ${preferences}`;
+    }
+
+    const keepMeals = Array.isArray(body.keepMeals)
+      ? body.keepMeals.filter((m: unknown): m is string => typeof m === "string").slice(0, 20)
+      : [];
+    if (keepMeals.length > 0) {
+      userPrompt += `\n\nأكلات من خطة الأسبوع الماضي حاب المستخدم يثبتها بالخطة الجديدة (كرّرها كما هي بنفس الوجبات المناسبة، ما تبدلها): ${JSON.stringify(keepMeals)}`;
     }
 
     if (profile.pregnancyStatus === "pregnant") {
