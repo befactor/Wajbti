@@ -120,6 +120,40 @@ npm run db:studio    # prisma studio — browse the local database
 
 Currently live at `wajbti-kohl.vercel.app`.
 
+## iOS app (Capacitor)
+
+Wajbti is server-rendered (NextAuth sessions, API routes, a database) — it
+can't be shipped as a static bundle the way most Capacitor apps are.
+Instead the native app is a thin WebView that loads the live production
+deployment directly (see `server.url` in `capacitor.config.ts`); the web
+codebase is the app, there's no separate mobile-only version to maintain.
+
+What's already set up (see the `ios/` folder, committed to the repo):
+- Capacitor core + the `ios` platform, pointed at `wajbti-kohl.vercel.app`.
+- `@capacitor/local-notifications`, wired into `app/water/page.tsx` — on
+  native the water reminders are real OS-scheduled daily notifications
+  (fire even when the app is closed), falling back to the existing in-tab
+  browser reminders when running as a normal website.
+- App icon + splash screen generated from the site's existing brand mark
+  (`mobile-shell/assets/make-icon.js` — rerun it with a real logo later if
+  you get one designed, then `npx @capacitor/assets generate --ios`).
+
+What still needs a Mac + Xcode (can't be done from this environment):
+1. `npm install && npx cap sync ios` to pull in the native project.
+2. Open `ios/App/App.xcworkspace` in Xcode (not the `.xcodeproj`).
+3. Under **Signing & Capabilities**, select your Apple Developer team.
+4. Set the app version/build number, then **Product → Archive** to build,
+   sign, and upload to App Store Connect.
+5. In App Store Connect: create the app listing (screenshots, description,
+   age rating), and set the Privacy Policy URL to
+   `https://wajbti-kohl.vercel.app/privacy` (already built — fill in a real
+   support email in `app/privacy/page.tsx` first, it currently has a
+   placeholder).
+6. Submit for review.
+
+Whenever you change `capacitor.config.ts` or add/remove a Capacitor plugin,
+re-run `npx cap sync ios` before opening Xcode again.
+
 ## Project structure
 
 ```
@@ -159,8 +193,10 @@ prisma/schema.prisma
 - Detailed workout/gym programming (explicitly out of scope for the chat and
   analyzer for now — see `NUTRITIONIST_CHAT_SYSTEM_PROMPT`)
 - Paid subscription tier
-- Capacitor wrapper for native iOS/Android (camera/mic already work via the
-  browser; real background push notifications need this step)
+- Android (Capacitor is set up for iOS only so far — see "iOS app" above;
+  adding Android is `npm install @capacitor/android && npx cap add android`)
+- Server-triggered push notifications (local notifications now cover the
+  water reminder; anything server-initiated would need APNs/FCM)
 
 ## Important notes
 

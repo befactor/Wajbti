@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
+import { Capacitor } from "@capacitor/core";
+import { LocalNotifications } from "@capacitor/local-notifications";
 import { dict, Lang } from "@/lib/i18n";
 import TabsBar from "@/app/components/TabsBar";
 import { localDateStr } from "@/lib/date";
@@ -16,6 +18,29 @@ type WaterSettings = {
 };
 
 type WaterLog = { id: string; amountMl: number };
+
+// Fixed ID range reserved for water-reminder local notifications, so we can
+// find and cancel our own previously-scheduled ones before rescheduling.
+const WATER_NOTIF_ID_BASE = 9000;
+const WATER_NOTIF_ID_MAX = WATER_NOTIF_ID_BASE + 99;
+
+function computeReminderSlots(settings: WaterSettings): { hour: number; minute: number }[] {
+  // startHour > endHour means an overnight window (e.g. Ramadan: iftar at
+  // 19 through suhoor cutoff at 4) - span wraps past midnight.
+  const spanHours =
+    settings.endHour > settings.startHour
+      ? settings.endHour - settings.startHour
+      : 24 - settings.startHour + settings.endHour;
+  const stepHours = spanHours / Math.max(settings.reminderCount - 1, 1);
+  const slots: { hour: number; minute: number }[] = [];
+  for (let i = 0; i < settings.reminderCount; i++) {
+    const totalHours = (settings.startHour + stepHours * i) % 24;
+    const hour = Math.floor(totalHours);
+    const minute = Math.round((totalHours - hour) * 60) % 60;
+    slots.push({ hour, minute });
+  }
+  return slots;
+}
 
 export default function WaterPage() {
   const [lang, setLang] = useState<Lang>("ar");
@@ -32,6 +57,7 @@ export default function WaterPage() {
     "default"
   );
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const isNative = Capacitor.isNativePlatform();
 
   function loadData() {
     setLoading(true);
@@ -55,28 +81,60 @@ export default function WaterPage() {
   }, [status]);
 
   useEffect(() => {
+    if (isNative) {
+      LocalNotifications.checkPermissions().then((res) =>
+        setNotifPermission(res.display === "granted" ? "granted" : res.display === "denied" ? "denied" : "default")
+      );
+      return;
+    }
     if (typeof window === "undefined" || !("Notification" in window)) {
       setNotifPermission("unsupported");
       return;
     }
     setNotifPermission(Notification.permission);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Best-effort in-tab reminders: schedules timeouts for the remaining
-  // reminder slots today, spaced evenly between startHour-endHour. Only
-  // fires while this page stays open (real background push needs the
-  // Capacitor-wrapped app, per the project roadmap).
+  // Native app: real OS-scheduled reminders that fire daily at fixed times,
+  // even if the app isn't open (unlike the in-tab fallback below).
+  useEffect(() => {
+    if (!isNative) return;
+
+    async function reschedule() {
+      const pending = await LocalNotifications.getPending();
+      const ours = pending.notifications
+        .filter((n) => n.id >= WATER_NOTIF_ID_BASE && n.id <= WATER_NOTIF_ID_MAX)
+        .map((n) => ({ id: n.id }));
+      if (ours.length > 0) await LocalNotifications.cancel({ notifications: ours });
+
+      if (!settings?.remindersEnabled || notifPermission !== "granted" || !settings.reminderCount) return;
+
+      const slots = computeReminderSlots(settings);
+      await LocalNotifications.schedule({
+        notifications: slots.map((slot, i) => ({
+          id: WATER_NOTIF_ID_BASE + i,
+          title: tw.title,
+          body: lang === "ar" ? "وقت شرب المية 💧" : "Time to drink water 💧",
+          schedule: { on: { hour: slot.hour, minute: slot.minute }, allowWhileIdle: true },
+        })),
+      });
+    }
+
+    reschedule().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNative, settings, notifPermission, lang]);
+
+  // Web fallback: best-effort in-tab reminders, spaced evenly between
+  // startHour-endHour. Only fires while this page stays open.
   useEffect(() => {
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
 
-    if (!settings?.remindersEnabled || notifPermission !== "granted" || !settings.reminderCount) {
+    if (isNative || !settings?.remindersEnabled || notifPermission !== "granted" || !settings.reminderCount) {
       return;
     }
 
     const now = new Date();
-    // startHour > endHour means an overnight window (e.g. Ramadan: iftar at
-    // 19 through suhoor cutoff at 4) - span wraps past midnight.
     const spanHours =
       settings.endHour > settings.startHour
         ? settings.endHour - settings.startHour
@@ -101,9 +159,14 @@ export default function WaterPage() {
 
     return () => timersRef.current.forEach(clearTimeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings, notifPermission]);
+  }, [isNative, settings, notifPermission]);
 
   async function requestNotifications() {
+    if (isNative) {
+      const res = await LocalNotifications.requestPermissions();
+      setNotifPermission(res.display === "granted" ? "granted" : res.display === "denied" ? "denied" : "default");
+      return;
+    }
     if (!("Notification" in window)) return;
     const perm = await Notification.requestPermission();
     setNotifPermission(perm);

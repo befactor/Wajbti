@@ -25,3 +25,11 @@ npm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# iOS (Capacitor) - generated locally by CocoaPods/Xcode, not source
+/ios/App/Pods/
+/ios/App/Podfile.lock
+/ios/App/build/
+/ios/App/DerivedData/
+/ios/**/xcuserdata/
+/ios/**/*.xcuserstate
