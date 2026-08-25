@@ -258,7 +258,6 @@ export default function Home() {
                 id="meal-photo-input"
                 type="file"
                 accept="image/*"
-                capture="environment"
                 onChange={handleImageSelect}
                 style={{ display: "none" }}
               />
