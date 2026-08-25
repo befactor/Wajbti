@@ -28,7 +28,7 @@ export async function GET() {
   return NextResponse.json({ messages });
 }
 
-async function buildUserContext(userId: string): Promise<string> {
+async function buildUserContext(userId: string, foodNotes: string[]): Promise<string> {
   const [profile, todayMeals] = await Promise.all([
     prisma.profile.findUnique({ where: { userId } }),
     prisma.mealEntry.findMany({
@@ -61,7 +61,25 @@ async function buildUserContext(userId: string): Promise<string> {
     lines.push("ما سجّل أي وجبة اليوم لحد الآن");
   }
 
+  if (foodNotes.length > 0) {
+    lines.push(`known_food_notes: ${JSON.stringify(foodNotes)}`);
+  }
+
   return lines.join("\n");
+}
+
+// Pulls any "[FOOD_NOTE: ...]" sentinel lines the model tucked into its
+// reply, strips them from the text the user actually sees, and returns
+// the extracted notes separately so the caller can persist them.
+function extractFoodNotes(replyText: string): { cleanedText: string; notes: string[] } {
+  const notes: string[] = [];
+  const cleanedText = replyText
+    .replace(/\[FOOD_NOTE:\s*([^\]]+)\]/g, (_match, note: string) => {
+      notes.push(note.trim());
+      return "";
+    })
+    .trim();
+  return { cleanedText, notes };
 }
 
 export async function POST(req: NextRequest) {
@@ -73,15 +91,19 @@ export async function POST(req: NextRequest) {
   if (!message) return NextResponse.json({ error: "الرسالة فاضية" }, { status: 400 });
 
   try {
-    const [history, userContext] = await Promise.all([
+    const [history, existingNotes] = await Promise.all([
       prisma.chatMessage.findMany({
         where: { userId },
         orderBy: { createdAt: "desc" },
         take: HISTORY_LIMIT,
       }),
-      buildUserContext(userId),
+      prisma.foodNote.findMany({ where: { userId }, select: { note: true } }),
     ]);
     const orderedHistory = history.reverse();
+    const userContext = await buildUserContext(
+      userId,
+      existingNotes.map((n) => n.note)
+    );
 
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
@@ -103,12 +125,21 @@ export async function POST(req: NextRequest) {
     });
 
     const textBlock = response.content.find((b) => b.type === "text");
-    const replyText = textBlock && "text" in textBlock ? textBlock.text : "";
+    const rawReply = textBlock && "text" in textBlock ? textBlock.text : "";
+    const { cleanedText: replyText, notes: newNotes } = extractFoodNotes(rawReply);
 
     const [userMsg, assistantMsg] = await prisma.$transaction([
       prisma.chatMessage.create({ data: { userId, role: "user", content: message } }),
       prisma.chatMessage.create({ data: { userId, role: "assistant", content: replyText } }),
     ]);
+
+    const existingNoteTexts = new Set(existingNotes.map((n) => n.note.trim().toLowerCase()));
+    const notesToSave = newNotes.filter((n) => n && !existingNoteTexts.has(n.trim().toLowerCase()));
+    if (notesToSave.length > 0) {
+      await prisma.foodNote.createMany({
+        data: notesToSave.map((note) => ({ userId, note, source: "chat" })),
+      });
+    }
 
     return NextResponse.json({ userMessage: userMsg, assistantMessage: assistantMsg });
   } catch (err) {

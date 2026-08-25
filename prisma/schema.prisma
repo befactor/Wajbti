@@ -35,6 +35,7 @@ model User {
   weightLogs    WeightLog[]
   chatMessages  ChatMessage[]
   favoriteMeals FavoriteMeal[]
+  foodNotes     FoodNote[]
 }
 
 model Account {
@@ -176,6 +177,21 @@ model FavoriteMeal {
   totalFiberG   Float?
   totalSugarG   Float?
   totalSodiumMg Float?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ---------- Standing food preferences/restrictions (extracted from chat) ----------
+
+model FoodNote {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  note   String // short third-person summary, e.g. "بيكره الباذنجان" / "حساسية من المكسرات"
+  source String @default("chat") // chat | manual
 
   createdAt DateTime @default(now())
 

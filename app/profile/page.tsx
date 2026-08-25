@@ -44,12 +44,25 @@ export default function ProfilePage() {
   const [weightLogs, setWeightLogs] = useState<Array<{ date: string; weightKg: number }>>([]);
   const [newWeight, setNewWeight] = useState("");
   const [loggingWeight, setLoggingWeight] = useState(false);
+  const [foodNotes, setFoodNotes] = useState<Array<{ id: string; note: string }>>([]);
 
   function loadWeightHistory() {
     fetch("/api/weight")
       .then((res) => res.json())
       .then((data) => setWeightLogs(data.logs || []))
       .catch(() => {});
+  }
+
+  function loadFoodNotes() {
+    fetch("/api/food-notes")
+      .then((res) => res.json())
+      .then((data) => setFoodNotes(data.foodNotes || []))
+      .catch(() => {});
+  }
+
+  async function deleteFoodNote(id: string) {
+    setFoodNotes((prev) => prev.filter((n) => n.id !== id));
+    await fetch(`/api/food-notes/${id}`, { method: "DELETE" }).catch(() => {});
   }
 
   useEffect(() => {
@@ -63,6 +76,7 @@ export default function ProfilePage() {
       })
       .catch(() => {});
     loadWeightHistory();
+    loadFoodNotes();
   }, [status]);
 
   async function logWeight(e: React.FormEvent) {
@@ -348,6 +362,21 @@ export default function ProfilePage() {
           </button>
         </form>
       </div>
+
+      {foodNotes.length > 0 && (
+        <div className="form-card">
+          <h3 style={{ fontFamily: "El Messiri", fontSize: 15, marginBottom: 6 }}>{tp.foodNotesTitle}</h3>
+          <p className="hint" style={{ marginBottom: 10 }}>{tp.foodNotesHint}</p>
+          {foodNotes.map((n) => (
+            <div key={n.id} className="diary-meal-row">
+              <span style={{ fontSize: 13.5 }}>{n.note}</span>
+              <button className="diary-delete-btn" onClick={() => deleteFoodNote(n.id)} aria-label={t.diary.delete}>
+                🗑
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       <TabsBar lang={lang} />
     </div>

@@ -120,12 +120,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const favorites = await prisma.favoriteMeal.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-      select: { foodName: true },
-    });
+    const [favorites, foodNotes] = await Promise.all([
+      prisma.favoriteMeal.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        select: { foodName: true },
+      }),
+      prisma.foodNote.findMany({ where: { userId }, select: { note: true } }),
+    ]);
 
     let userPrompt = `ابنِ خطة طعام لـ ${days} يوم/أيام.
 targetCalories: ${Math.round(profile.dailyCalorieTarget)}
@@ -134,6 +137,10 @@ activityLevel: ${profile.activityLevel}`;
 
     if (favorites.length > 0) {
       userPrompt += `\nfavorite_meals: ${JSON.stringify(favorites.map((f) => f.foodName))}`;
+    }
+
+    if (foodNotes.length > 0) {
+      userPrompt += `\nknown_food_notes: ${JSON.stringify(foodNotes.map((n) => n.note))}`;
     }
 
     if (preferences) {
