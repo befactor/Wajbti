@@ -7,6 +7,7 @@ import { Lang } from "@/lib/i18n";
 const TABS: Array<{ href: string; icon: string; label: { ar: string; en: string } }> = [
   { href: "/", icon: "🍽️", label: { ar: "تحليل", en: "Analyze" } },
   { href: "/diary", icon: "📔", label: { ar: "اليوميات", en: "Diary" } },
+  { href: "/chat", icon: "💬", label: { ar: "أخصائيك", en: "Chat" } },
   { href: "/plan", icon: "🗓️", label: { ar: "خطة الطعام", en: "Plan" } },
   { href: "/water", icon: "💧", label: { ar: "الماء", en: "Water" } },
   { href: "/profile", icon: "👤", label: { ar: "الملف", en: "Profile" } },

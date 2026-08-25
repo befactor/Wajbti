@@ -19,6 +19,9 @@ export async function PUT(req: NextRequest) {
   const endHour = Number(body.endHour);
   const remindersEnabled = Boolean(body.remindersEnabled);
 
+  // startHour > endHour is allowed on purpose - it means an overnight window
+  // (e.g. Ramadan: iftar at 19 to suhoor cutoff at 4), handled by the
+  // wraparound math in the reminder scheduler.
   if (
     !dailyGoalMl ||
     dailyGoalMl <= 0 ||
@@ -27,7 +30,7 @@ export async function PUT(req: NextRequest) {
     startHour > 23 ||
     endHour < 0 ||
     endHour > 23 ||
-    startHour >= endHour
+    startHour === endHour
   ) {
     return NextResponse.json({ error: "إعدادات غير صحيحة" }, { status: 400 });
   }

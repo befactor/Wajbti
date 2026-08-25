@@ -8,7 +8,7 @@ import TabsBar from "@/app/components/TabsBar";
 import { addDays, localDateStr } from "@/lib/date";
 import { getAdaptiveDiaryTip } from "@/lib/nutrition";
 
-type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
+type MealSlot = "breakfast" | "lunch" | "dinner" | "snack" | "suhoor" | "iftar";
 
 type MealItem = { food_name: string; food_name_en?: string };
 
@@ -21,9 +21,11 @@ type MealEntry = {
   totalProteinG: number;
   totalCarbsG: number;
   totalFatG: number;
+  diningContext: string | null;
 };
 
-const SLOT_ORDER: MealSlot[] = ["breakfast", "lunch", "dinner", "snack"];
+const STANDARD_SLOTS: MealSlot[] = ["breakfast", "lunch", "dinner", "snack"];
+const RAMADAN_SLOTS: MealSlot[] = ["suhoor", "iftar"];
 
 export default function DiaryPage() {
   const [lang, setLang] = useState<Lang>("ar");
@@ -35,7 +37,25 @@ export default function DiaryPage() {
   const [meals, setMeals] = useState<MealEntry[]>([]);
   const [calorieTarget, setCalorieTarget] = useState<number | null>(null);
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
+  const [ramadanMode, setRamadanMode] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [streak, setStreak] = useState(0);
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission | "unsupported">(
+    "default"
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      setNotifPermission("unsupported");
+      return;
+    }
+    setNotifPermission(Notification.permission);
+  }, []);
+
+  async function requestNotifications() {
+    if (!("Notification" in window)) return;
+    setNotifPermission(await Notification.requestPermission());
+  }
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -48,9 +68,47 @@ export default function DiaryPage() {
         setMeals(mealsData.meals || []);
         setHasProfile(!!profileData.profile);
         setCalorieTarget(profileData.profile?.dailyCalorieTarget ?? null);
+        setRamadanMode(!!profileData.profile?.ramadanMode);
       })
       .finally(() => setLoading(false));
   }, [status, dateStr]);
+
+  // Best-effort "you haven't logged anything today" nudge - same in-tab
+  // notification approach as the water reminders (only fires while a tab is
+  // open; real background push needs the Capacitor app later). Guarded by
+  // localStorage so it fires at most once per calendar day even across
+  // reloads, and only once meals for *today* have actually loaded.
+  useEffect(() => {
+    if (
+      status !== "authenticated" ||
+      loading ||
+      dateStr !== localDateStr() ||
+      notifPermission !== "granted" ||
+      meals.length > 0
+    ) {
+      return;
+    }
+    const currentHour = new Date().getHours();
+    if (currentHour < 14) return;
+
+    const storageKey = `wajbti_meal_reminder_notified_${dateStr}`;
+    if (localStorage.getItem(storageKey)) return;
+
+    new Notification(td.title, {
+      body: lang === "ar" ? "لسا ما سجّلت وجبة اليوم 🍽️" : "You haven't logged a meal today yet 🍽️",
+    });
+    localStorage.setItem(storageKey, "1");
+  }, [status, loading, dateStr, notifPermission, meals, lang, td.title]);
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    fetch("/api/stats/streak")
+      .then((r) => r.json())
+      .then((data) => setStreak(data.streak || 0))
+      .catch(() => {});
+  }, [status, dateStr]);
+
+  const SLOT_ORDER = ramadanMode ? RAMADAN_SLOTS : STANDARD_SLOTS;
 
   async function deleteMeal(id: string) {
     setMeals((prev) => prev.filter((m) => m.id !== id));
@@ -84,6 +142,8 @@ export default function DiaryPage() {
     lunch: [],
     dinner: [],
     snack: [],
+    suhoor: [],
+    iftar: [],
   };
   meals.forEach((m) => grouped[m.slot]?.push(m));
 
@@ -132,12 +192,23 @@ export default function DiaryPage() {
         <button onClick={() => setDateStr(addDays(dateStr, 1))}>›</button>
       </div>
 
+      {streak > 1 && <p className="streak-badge">🔥 {td.streakLabel.replace("{n}", String(streak))}</p>}
+
       {hasProfile === false && (
         <div className="tip-card">
           <p style={{ marginBottom: 10 }}>{td.noProfile}</p>
           <Link href="/profile" className="analyze-cta" style={{ display: "block", textAlign: "center" }}>
             {td.completeProfile}
           </Link>
+        </div>
+      )}
+
+      {notifPermission === "default" && (
+        <div className="tip-card">
+          <p style={{ marginBottom: 10 }}>{td.notifPermissionNote}</p>
+          <button className="analyze-cta" onClick={requestNotifications}>
+            {td.enableNotifications}
+          </button>
         </div>
       )}
 
@@ -195,9 +266,17 @@ export default function DiaryPage() {
           )}
 
           {adaptiveTip !== "none" && (
-            <div className={adaptiveTip === "over" ? "hidden-fat-flag" : "tip-card"}>
-              {adaptiveTip === "watch" ? "⚖️ " : "🔄 "}
-              {adaptiveTip === "watch" ? td.adaptiveWatch : td.adaptiveOver}
+            <div
+              className={
+                adaptiveTip === "over" ? "hidden-fat-flag" : adaptiveTip === "good" ? "dining-badge" : "tip-card"
+              }
+            >
+              {adaptiveTip === "watch" && "⚖️ "}
+              {adaptiveTip === "good" && "🎉 "}
+              {adaptiveTip === "over" && "🔄 "}
+              {adaptiveTip === "watch" && td.adaptiveWatch}
+              {adaptiveTip === "good" && td.adaptiveGood}
+              {adaptiveTip === "over" && td.adaptiveOver}
             </div>
           )}
 
@@ -217,6 +296,7 @@ export default function DiaryPage() {
                 <div key={meal.id} className="diary-meal-row">
                   <div>
                     <strong>
+                      {meal.diningContext === "restaurant" && "🍽️ "}
                       {meal.items?.map((i) => (lang === "ar" ? i.food_name : i.food_name_en || i.food_name)).join("، ") ||
                         meal.description}
                     </strong>

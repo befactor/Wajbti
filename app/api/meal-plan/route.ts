@@ -41,19 +41,21 @@ export async function POST(req: NextRequest) {
   const days = Math.min(Math.max(Number(body.days) || 7, 1), 7);
 
   try {
+    let userPrompt = `ابنِ خطة طعام لـ ${days} يوم/أيام.
+targetCalories: ${Math.round(profile.dailyCalorieTarget)}
+goal: ${profile.goal}
+activityLevel: ${profile.activityLevel}`;
+
+    if (profile.ramadanMode) {
+      userPrompt +=
+        "\n\nملاحظة مهمة: المستخدم صايم (وضع رمضان مفعّل). ابنِ الخطة على وجبتين فقط بكل يوم: \"سحور\" و\"إفطار\" (بدل الوجبات العادية)، ووزّع نفس السعرات المستهدفة عليهم بس بشكل يراعي الصيام: إفطار يبدأ بشي خفيف (تمر وماء/لبن) بعده الوجبة الرئيسية، وسحور يركز على بروتين وألياف تساعد الشبع لفترة الصيام. استخدم قيمة slot تساوي \"suhoor\" أو \"iftar\" فقط بدل breakfast/lunch/dinner/snack.";
+    }
+
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 3000,
       system: MEAL_PLAN_SYSTEM_PROMPT,
-      messages: [
-        {
-          role: "user",
-          content: `ابنِ خطة طعام لـ ${days} يوم/أيام.
-targetCalories: ${Math.round(profile.dailyCalorieTarget)}
-goal: ${profile.goal}
-activityLevel: ${profile.activityLevel}`,
-        },
-      ],
+      messages: [{ role: "user", content: userPrompt }],
     });
 
     const textBlock = response.content.find((b) => b.type === "text");

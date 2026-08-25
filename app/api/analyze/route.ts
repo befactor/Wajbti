@@ -7,11 +7,11 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-// POST body: { description?: string, imageBase64?: string, mediaType?: string, voiceNote?: string, userId?: string }
+// POST body: { description?: string, imageBase64?: string, mediaType?: string, voiceNote?: string, diningMode?: boolean, userId?: string }
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { description, imageBase64, mediaType, voiceNote, userId } = body;
+    const { description, imageBase64, mediaType, voiceNote, diningMode, userId } = body;
 
     if (!description && !imageBase64) {
       return NextResponse.json(
@@ -43,6 +43,10 @@ export async function POST(req: NextRequest) {
     if (voiceNote) {
       textPrompt += `\nملاحظة صوتية من المستخدم: ${voiceNote}`;
     }
+    if (diningMode) {
+      textPrompt +=
+        "\n\nملاحظة سياق: هاي الوجبة من برا البيت (مطعم/بوفيه/عزومة) - المستخدم ما طبخها بنفسه وما بيعرف تفاصيل الوصفة بدقة. وسّع هامش تقديرك خصوصاً للزيت/السمن/الصوصات المخفية، واذكر بوضوح إن دقة التقدير أقل من وجبة بيتية.";
+    }
     if (retrievedCorrections.length > 0) {
       textPrompt += `\n\nretrieved_corrections: ${JSON.stringify(retrievedCorrections)}`;
     }
@@ -63,7 +67,7 @@ export async function POST(req: NextRequest) {
     const cleaned = raw.replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(cleaned);
 
-    return NextResponse.json(parsed);
+    return NextResponse.json({ ...parsed, dining_mode: !!diningMode });
   } catch (err: any) {
     console.error("Wajbti analyze error:", err);
     return NextResponse.json(

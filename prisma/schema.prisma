@@ -32,6 +32,8 @@ model User {
   corrections   Correction[]
   waterLogs     WaterLog[]
   mealPlans     MealPlan[]
+  weightLogs    WeightLog[]
+  chatMessages  ChatMessage[]
 }
 
 model Account {
@@ -89,8 +91,40 @@ model Profile {
   dailyCalorieTarget Float?
   dailyWaterTargetMl Int?
 
+  ramadanMode Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ---------- Weight tracking ----------
+
+model WeightLog {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  date     DateTime // day this log belongs to (UTC midnight)
+  weightKg Float
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, date])
+}
+
+// ---------- Personal nutritionist chat ----------
+
+model ChatMessage {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  role    String // user | assistant
+  content String @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 // ---------- Diary ----------
@@ -101,9 +135,10 @@ model MealEntry {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   date        DateTime // day this entry belongs to (UTC midnight)
-  slot        String // breakfast | lunch | dinner | snack
+  slot        String // breakfast | lunch | dinner | snack | suhoor | iftar
   description String?
   inputType   String // image | text
+  diningContext String? // home | restaurant (null = home, default)
 
   items Json // full analyzed items array (food_name, portion_breakdown, macros, ...)
 

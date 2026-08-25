@@ -70,17 +70,18 @@ export default function WaterPage() {
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
 
-    if (
-      !settings?.remindersEnabled ||
-      notifPermission !== "granted" ||
-      !settings.reminderCount ||
-      settings.startHour >= settings.endHour
-    ) {
+    if (!settings?.remindersEnabled || notifPermission !== "granted" || !settings.reminderCount) {
       return;
     }
 
     const now = new Date();
-    const spanMs = (settings.endHour - settings.startHour) * 3600 * 1000;
+    // startHour > endHour means an overnight window (e.g. Ramadan: iftar at
+    // 19 through suhoor cutoff at 4) - span wraps past midnight.
+    const spanHours =
+      settings.endHour > settings.startHour
+        ? settings.endHour - settings.startHour
+        : 24 - settings.startHour + settings.endHour;
+    const spanMs = spanHours * 3600 * 1000;
     const stepMs = spanMs / Math.max(settings.reminderCount - 1, 1);
     const dayStart = new Date(now);
     dayStart.setHours(settings.startHour, 0, 0, 0);

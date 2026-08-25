@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { dict, Lang } from "@/lib/i18n";
@@ -24,6 +24,7 @@ type AnalysisItem = {
 
 type AnalysisResult = {
   input_type?: "image" | "text";
+  dining_mode?: boolean;
   totals: {
     calories: number;
     protein_g: number;
@@ -41,7 +42,18 @@ type AnalysisResult = {
   clarification_question?: string;
 };
 
-type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
+type MealSlot = "breakfast" | "lunch" | "dinner" | "snack" | "suhoor" | "iftar";
+
+type SpeechRecognitionLike = {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: ((event: { results: { [i: number]: { [j: number]: { transcript: string } } } }) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
 
 export default function Home() {
   const [lang, setLang] = useState<Lang>("ar");
@@ -57,6 +69,55 @@ export default function Home() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [imageMediaType, setImageMediaType] = useState<string>("image/jpeg");
+  const [diningMode, setDiningMode] = useState(false);
+  const [ramadanMode, setRamadanMode] = useState(false);
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    fetch("/api/profile")
+      .then((r) => r.json())
+      .then((data) => {
+        const isRamadan = !!data.profile?.ramadanMode;
+        setRamadanMode(isRamadan);
+        setSelectedSlot(isRamadan ? "suhoor" : "breakfast");
+      })
+      .catch(() => {});
+  }, [status]);
+  const [listening, setListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+
+  useEffect(() => {
+    const w = window as unknown as Record<string, unknown>;
+    setSpeechSupported(!!(w.SpeechRecognition || w.webkitSpeechRecognition));
+  }, []);
+
+  function toggleListening() {
+    if (listening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    const SpeechRecognitionCtor =
+      (window as unknown as Record<string, unknown>).SpeechRecognition ||
+      (window as unknown as Record<string, unknown>).webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) return;
+
+    const recognition: SpeechRecognitionLike = new (SpeechRecognitionCtor as new () => SpeechRecognitionLike)();
+    recognition.lang = lang === "ar" ? "ar-SA" : "en-US";
+    recognition.interimResults = false;
+    recognition.continuous = false;
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0]?.[0]?.transcript || "";
+      setDescription((prev) => (prev.trim() ? `${prev.trim()} ${transcript}` : transcript));
+    };
+    recognition.onerror = () => setListening(false);
+    recognition.onend = () => setListening(false);
+
+    recognitionRef.current = recognition;
+    setListening(true);
+    recognition.start();
+  }
 
   function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -91,6 +152,7 @@ export default function Home() {
           description: description.trim() || undefined,
           imageBase64: imageBase64 || undefined,
           mediaType: imageBase64 ? imageMediaType : undefined,
+          diningMode,
         }),
       });
       const data = await res.json();
@@ -140,6 +202,7 @@ export default function Home() {
           totals: result.totals,
           aiTip: result.ai_nutritionist_tip,
           swapSuggestion: result.healthy_swap_suggestion,
+          diningContext: result.dining_mode ? "restaurant" : undefined,
         }),
       });
       const data = await res.json();
@@ -212,7 +275,22 @@ export default function Home() {
               onChange={(e) => setDescription(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && analyze()}
             />
+            {speechSupported && (
+              <button
+                type="button"
+                className={`mic-btn ${listening ? "listening" : ""}`}
+                onClick={toggleListening}
+                aria-label={t.voiceInput}
+              >
+                🎙️
+              </button>
+            )}
           </div>
+
+          <label className="dining-toggle">
+            <input type="checkbox" checked={diningMode} onChange={(e) => setDiningMode(e.target.checked)} />
+            {t.diningModeLabel}
+          </label>
 
           {error && <p style={{ color: "var(--sumac)", fontSize: 13, marginBottom: 10 }}>{error}</p>}
 
@@ -275,6 +353,8 @@ export default function Home() {
             </div>
           </div>
 
+          {result.dining_mode && <div className="dining-badge">🍽️ {t.diningModeBadge}</div>}
+
           {result.items?.some((i) => i.hidden_fat_detected) && (
             <div className="hidden-fat-flag">
               ⚠️ {lang === "ar" ? "رصدنا دهون مخفية بالوجبة" : "Hidden fats detected in this meal"}
@@ -332,10 +412,19 @@ export default function Home() {
                       value={selectedSlot}
                       onChange={(e) => setSelectedSlot(e.target.value as MealSlot)}
                     >
-                      <option value="breakfast">{t.slotBreakfast}</option>
-                      <option value="lunch">{t.slotLunch}</option>
-                      <option value="dinner">{t.slotDinner}</option>
-                      <option value="snack">{t.slotSnack}</option>
+                      {ramadanMode ? (
+                        <>
+                          <option value="suhoor">{t.diary.slots.suhoor}</option>
+                          <option value="iftar">{t.diary.slots.iftar}</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="breakfast">{t.slotBreakfast}</option>
+                          <option value="lunch">{t.slotLunch}</option>
+                          <option value="dinner">{t.slotDinner}</option>
+                          <option value="snack">{t.slotSnack}</option>
+                        </>
+                      )}
                     </select>
                   </div>
                   <button className="analyze-cta" onClick={addToDiary} disabled={savingMeal}>
@@ -352,6 +441,7 @@ export default function Home() {
               setResult(null);
               setDescription("");
               setSavedToDiary(false);
+              setDiningMode(false);
               clearImage();
             }}
           >

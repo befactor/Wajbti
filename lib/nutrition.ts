@@ -71,12 +71,13 @@ export function calculateDailyWaterTargetMl(
 // ate up most of the daily target, nudge the next meal to go lighter on
 // carbs/fat instead of letting the user feel like they've already failed
 // the day. Pure arithmetic heuristic - no LLM call needed for this nudge.
-export type AdaptiveTipLevel = "none" | "watch" | "over";
+export type AdaptiveTipLevel = "none" | "watch" | "good" | "over";
 
 export function getAdaptiveDiaryTip(consumedSoFar: number, dailyTarget: number): AdaptiveTipLevel {
   if (dailyTarget <= 0) return "none";
   const ratio = consumedSoFar / dailyTarget;
-  if (ratio >= 1) return "over";
+  if (ratio >= 1.05) return "over";
+  if (ratio >= 0.95) return "good";
   if (ratio >= 0.75) return "watch";
   return "none";
 }

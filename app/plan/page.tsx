@@ -7,7 +7,7 @@ import { dict, Lang } from "@/lib/i18n";
 import TabsBar from "@/app/components/TabsBar";
 
 type PlanMeal = {
-  slot: "breakfast" | "lunch" | "dinner" | "snack";
+  slot: "breakfast" | "lunch" | "dinner" | "snack" | "suhoor" | "iftar";
   food_name: string;
   calories: number;
   protein_g: number;

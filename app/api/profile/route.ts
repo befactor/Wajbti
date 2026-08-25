@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
   const weightKg = Number(body.weightKg);
   const activityLevel = body.activityLevel as ActivityLevel;
   const goal = body.goal as Goal;
+  const ramadanMode = Boolean(body.ramadanMode);
 
   if (
     !sex ||
@@ -75,6 +76,7 @@ export async function POST(req: NextRequest) {
       tdee,
       dailyCalorieTarget,
       dailyWaterTargetMl,
+      ramadanMode,
     },
     update: {
       sex,
@@ -87,6 +89,7 @@ export async function POST(req: NextRequest) {
       tdee,
       dailyCalorieTarget,
       dailyWaterTargetMl,
+      ramadanMode,
     },
   });
 

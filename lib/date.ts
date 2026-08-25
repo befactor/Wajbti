@@ -16,3 +16,20 @@ export function addDays(dateStr: string, delta: number): string {
   d.setUTCDate(d.getUTCDate() + delta);
   return d.toISOString().slice(0, 10);
 }
+
+// Consecutive-day logging streak. dateStrs are the days that have at least
+// one entry (any order). Today not having an entry yet doesn't break a
+// streak that's still active as of yesterday - it starts counting from
+// whichever of today/yesterday is present.
+export function computeStreak(dateStrs: string[], today: string = localDateStr()): number {
+  const present = new Set(dateStrs);
+  let cursor = present.has(today) ? today : addDays(today, -1);
+  if (!present.has(cursor)) return 0;
+
+  let streak = 0;
+  while (present.has(cursor)) {
+    streak++;
+    cursor = addDays(cursor, -1);
+  }
+  return streak;
+}

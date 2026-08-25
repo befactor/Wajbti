@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { dateStrToUTCMidnight, localDateStr } from "@/lib/date";
 
-const SLOTS = ["breakfast", "lunch", "dinner", "snack"];
+const SLOTS = ["breakfast", "lunch", "dinner", "snack", "suhoor", "iftar"];
 
 async function requireUserId() {
   const session = await getServerSession(authOptions);
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
 
   const body = await req.json();
-  const { slot, description, inputType, items, totals, aiTip, swapSuggestion } = body;
+  const { slot, description, inputType, items, totals, aiTip, swapSuggestion, diningContext } = body;
   const dateStr = body.date || localDateStr();
 
   if (!slot || !SLOTS.includes(slot) || !totals || typeof totals.calories !== "number") {
@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
       totalSodiumMg: totals.sodium_mg ?? null,
       aiTip: aiTip || null,
       swapSuggestion: swapSuggestion || null,
+      diningContext: diningContext || null,
     },
   });
 

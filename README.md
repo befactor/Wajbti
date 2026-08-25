@@ -1,9 +1,10 @@
 # Wajbti (وجبتي)
 
 AI nutrition assistant specialized in Arabic and Middle Eastern cuisine — meal
-analysis (photo/text), hidden-fat detection, a correction feedback loop that
-builds cuisine-specific memory over time, BMR/TDEE/BMI, a MyFitnessPal-style
-diary, AI-generated meal plans, and a water reminder.
+analysis (photo/voice/text), hidden-fat detection, a correction feedback loop
+that builds cuisine-specific memory over time, BMR/TDEE/BMI with weight-trend
+tracking, a MyFitnessPal-style diary (with a Ramadan suhoor/iftar mode),
+AI-generated meal plans, a water reminder, and a personal nutritionist chat.
 
 ## Stack
 
@@ -17,22 +18,35 @@ diary, AI-generated meal plans, and a water reminder.
 
 ## What's implemented
 
-- Meal analysis by photo or text description, with hidden-fat detection and,
-  for text-only input, a "standard portion" breakdown in household measures
-  (never raw grams presented as an observation — see design principles below)
+- Meal analysis by photo, voice (browser speech-to-text), or text
+  description, with hidden-fat detection and, for text-only input, a
+  "standard portion" breakdown in household measures (never raw grams
+  presented as an observation — see design principles below)
+- Dining-out mode: a toggle that tells the analyzer this meal wasn't cooked
+  at home (restaurant/buffet/gathering), widening its estimate margin and
+  flagging the result as rougher than a home-meal estimate
 - Correction feedback loop: users can only confirm/correct the **food name**,
   never numbers; corrections are persisted and retrieved (simple text-match
   RAG) to ground future analyses
 - Auth: Google, Email/password, Apple (once credentials exist)
 - Profile page: BMR (Mifflin-St Jeor), TDEE (activity factor), BMI + daily
-  calorie/water targets
+  calorie/water targets, a Ramadan-mode toggle, and weight-trend tracking
+  (logging a new weight auto-recomputes BMR/TDEE/targets)
 - Diary: date-navigable, calories-remaining ring, meals grouped by
-  breakfast/lunch/dinner/snack, adaptive "go lighter next meal" nudge
+  breakfast/lunch/dinner/snack (or suhoor/iftar in Ramadan mode), adaptive
+  "go lighter next meal" / "you hit your goal" nudges, a logging-streak
+  badge, and a best-effort "you haven't logged today" notification
 - Smart meal planning: AI-generated 1-7 day plans of Arabic/local dishes
-  sized to the user's TDEE and goal (safe 300-500 kcal deficit/surplus)
+  sized to the user's TDEE and goal (safe 300-500 kcal deficit/surplus),
+  restructured to a suhoor/iftar plan in Ramadan mode
 - Water reminder: daily target from weight/activity, quick-log + undo,
-  configurable schedule, best-effort in-tab browser notifications (full
-  background push needs the future Capacitor mobile app)
+  configurable schedule (including an overnight window for Ramadan),
+  best-effort in-tab browser notifications (full background push needs the
+  future Capacitor mobile app)
+- Personal nutritionist chat: a persisted, ongoing conversation personalized
+  with the user's profile/TDEE/goal and today's diary totals, bound by the
+  same medical-disclaimer rule as the analyzer (no precise numbers for
+  sensitive conditions; no detailed workout programming — out of scope)
 - Image upload UI (camera on mobile, file picker on desktop)
 - Arabic (RTL) / English (LTR) with instant toggle
 
@@ -110,35 +124,40 @@ Currently live at `wajbti-kohl.vercel.app`.
 
 ```
 app/
-  page.tsx              # home: analyze a meal (photo/text), add to diary
-  diary/page.tsx         # MyFitnessPal-style daily log
-  plan/page.tsx           # AI-generated meal plan
-  profile/page.tsx        # BMR/TDEE/BMI form
-  water/page.tsx           # water tracking + reminders
-  auth/{signin,register}/ # NextAuth pages
+  page.tsx              # home: analyze a meal (photo/voice/text), add to diary
+  diary/page.tsx         # MyFitnessPal-style daily log (+ Ramadan slots, streak)
+  chat/page.tsx           # personal nutritionist chat
+  plan/page.tsx            # AI-generated meal plan
+  profile/page.tsx         # BMR/TDEE/BMI form + weight trend chart
+  water/page.tsx            # water tracking + reminders
+  auth/{signin,register}/  # NextAuth pages
   api/
-    analyze/              # meal analysis (Claude)
-    meal-plan/             # meal plan generation (Claude)
-    meals/                  # diary CRUD
-    water/                   # water log + settings CRUD
-    profile/                  # BMR/TDEE/BMI compute + persist
-    feedback/                  # correction feedback (food name only)
-    auth/                       # NextAuth + email/password register
+    analyze/               # meal analysis (Claude)
+    chat/                   # nutritionist chat (Claude, persisted history)
+    meal-plan/               # meal plan generation (Claude)
+    meals/                    # diary CRUD
+    weight/                    # weight log CRUD + profile auto-recompute
+    water/                      # water log + settings CRUD
+    profile/                     # BMR/TDEE/BMI compute + persist
+    stats/streak/                 # consecutive-day logging streak
+    feedback/                      # correction feedback (food name only)
+    auth/                           # NextAuth + email/password register
 lib/
-  systemPrompt.ts   # WAJBTI_SYSTEM_PROMPT (analysis) + MEAL_PLAN_SYSTEM_PROMPT
+  systemPrompt.ts   # WAJBTI_SYSTEM_PROMPT + MEAL_PLAN_SYSTEM_PROMPT + NUTRITIONIST_CHAT_SYSTEM_PROMPT
   nutrition.ts      # BMR/TDEE/BMI/water-target math, adaptive diary nudge
   corrections.ts    # correction RAG (retrieve + save)
   auth.ts           # NextAuth config
   prisma.ts         # Prisma client singleton
   i18n.ts           # ar/en dictionary
-  date.ts           # local-day helpers
+  date.ts           # local-day helpers, streak computation
 prisma/schema.prisma
 ```
 
 ## Not yet built
 
-- Statistics/progress over time (weight chart, logging streaks)
-- General smart notifications (unlogged-meal reminder, goal-hit congrats)
+- Broader statistics/progress dashboard (beyond the weight trend chart)
+- Detailed workout/gym programming (explicitly out of scope for the chat and
+  analyzer for now — see `NUTRITIONIST_CHAT_SYSTEM_PROMPT`)
 - Paid subscription tier
 - Capacitor wrapper for native iOS/Android (camera/mic already work via the
   browser; real background push notifications need this step)
