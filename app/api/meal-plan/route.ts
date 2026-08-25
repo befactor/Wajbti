@@ -53,10 +53,21 @@ activityLevel: ${profile.activityLevel}`;
 
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 3000,
+      // A full 7-day plan (4 meals/day with macros) runs well past 3000
+      // tokens as JSON; too low a ceiling here silently truncates the
+      // response and breaks JSON.parse below.
+      max_tokens: 8000,
       system: MEAL_PLAN_SYSTEM_PROMPT,
       messages: [{ role: "user", content: userPrompt }],
     });
+
+    if (response.stop_reason === "max_tokens") {
+      console.error("Meal plan generation truncated at max_tokens");
+      return NextResponse.json(
+        { error: "الخطة طويلة كتير وانقطع الرد، جرب تولّد خطة بأيام أقل" },
+        { status: 500 }
+      );
+    }
 
     const textBlock = response.content.find((b) => b.type === "text");
     const raw = textBlock && "text" in textBlock ? textBlock.text : "{}";
