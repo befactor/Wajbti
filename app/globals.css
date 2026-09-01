@@ -16,6 +16,10 @@ body {
   color: var(--tanoor);
 }
 .container { max-width: 480px; margin: 0 auto; padding: calc(24px + env(safe-area-inset-top)) 20px calc(90px + env(safe-area-inset-bottom)); min-height: 100vh; }
+.status-bar-spacer {
+  position: fixed; top: 0; inset-inline: 0; height: env(safe-area-inset-top);
+  background: var(--semolina); z-index: 30;
+}
 .container:has(> .form-card) { display: flex; flex-direction: column; justify-content: center; }
 .brand { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 6px; }
 .brand-mark {
