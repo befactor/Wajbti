@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 export const dict = {
   ar: {
     dir: "rtl",
@@ -380,3 +382,24 @@ export const dict = {
 } as const;
 
 export type Lang = keyof typeof dict;
+
+// Each page picks its language independently via useState, which resets to
+// "ar" on every navigation since it's a fresh full-page component mount.
+// Persist the choice so it carries across pages.
+const LANG_STORAGE_KEY = "wajbti-lang";
+
+export function useLang(): [Lang, (lang: Lang) => void] {
+  const [lang, setLangState] = useState<Lang>("ar");
+
+  useEffect(() => {
+    const stored = localStorage.getItem(LANG_STORAGE_KEY);
+    if (stored && stored in dict) setLangState(stored as Lang);
+  }, []);
+
+  function setLang(next: Lang) {
+    setLangState(next);
+    localStorage.setItem(LANG_STORAGE_KEY, next);
+  }
+
+  return [lang, setLang];
+}

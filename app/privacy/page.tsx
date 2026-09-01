@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useLang } from "@/lib/i18n";
 
 type Lang = "ar" | "en";
 
@@ -105,7 +105,7 @@ const content: Record<Lang, { title: string; updated: string; sections: { h: str
 };
 
 export default function PrivacyPage() {
-  const [lang, setLang] = useState<Lang>("ar");
+  const [lang, setLang] = useLang();
   const c = content[lang];
   const dir = lang === "ar" ? "rtl" : "ltr";
 

@@ -5,7 +5,7 @@ import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
-import { dict, Lang } from "@/lib/i18n";
+import { dict, useLang } from "@/lib/i18n";
 import TabsBar from "@/app/components/TabsBar";
 import { localDateStr } from "@/lib/date";
 
@@ -43,7 +43,7 @@ function computeReminderSlots(settings: WaterSettings): { hour: number; minute: 
 }
 
 export default function WaterPage() {
-  const [lang, setLang] = useState<Lang>("ar");
+  const [lang, setLang] = useLang();
   const t = dict[lang];
   const tw = t.water;
   const { data: session, status } = useSession();

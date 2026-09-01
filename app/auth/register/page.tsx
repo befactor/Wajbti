@@ -4,10 +4,10 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { dict, Lang } from "@/lib/i18n";
+import { dict, useLang } from "@/lib/i18n";
 
 export default function RegisterPage() {
-  const [lang, setLang] = useState<Lang>("ar");
+  const [lang, setLang] = useLang();
   const t = dict[lang];
   const ta = t.auth;
   const router = useRouter();

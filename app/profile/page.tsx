@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
-import { dict, Lang } from "@/lib/i18n";
+import { dict, useLang } from "@/lib/i18n";
 import TabsBar from "@/app/components/TabsBar";
 
 type ProfileData = {
@@ -26,7 +26,7 @@ const GOAL_OPTIONS = ["lose", "maintain", "gain"] as const;
 const PREGNANCY_OPTIONS = ["none", "pregnant", "breastfeeding"] as const;
 
 export default function ProfilePage() {
-  const [lang, setLang] = useState<Lang>("ar");
+  const [lang, setLang] = useLang();
   const t = dict[lang];
   const tp = t.profile;
   const { data: session, status } = useSession();

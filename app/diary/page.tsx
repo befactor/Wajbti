@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
-import { dict, Lang } from "@/lib/i18n";
+import { dict, useLang } from "@/lib/i18n";
 import TabsBar from "@/app/components/TabsBar";
 import { addDays, localDateStr } from "@/lib/date";
 import { getAdaptiveDiaryTip } from "@/lib/nutrition";
@@ -41,7 +41,7 @@ const STANDARD_SLOTS: MealSlot[] = ["breakfast", "lunch", "dinner", "snack"];
 const RAMADAN_SLOTS: MealSlot[] = ["suhoor", "iftar"];
 
 export default function DiaryPage() {
-  const [lang, setLang] = useState<Lang>("ar");
+  const [lang, setLang] = useLang();
   const t = dict[lang];
   const td = t.diary;
   const { data: session, status } = useSession();

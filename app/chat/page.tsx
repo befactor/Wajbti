@@ -3,13 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
-import { dict, Lang } from "@/lib/i18n";
+import { dict, useLang } from "@/lib/i18n";
 import TabsBar from "@/app/components/TabsBar";
 
 type ChatMsg = { id: string; role: "user" | "assistant"; content: string };
 
 export default function ChatPage() {
-  const [lang, setLang] = useState<Lang>("ar");
+  const [lang, setLang] = useLang();
   const t = dict[lang];
   const tc = t.chat;
   const { data: session, status } = useSession();

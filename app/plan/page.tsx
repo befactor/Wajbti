@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
-import { dict, Lang } from "@/lib/i18n";
+import { dict, useLang } from "@/lib/i18n";
 import TabsBar from "@/app/components/TabsBar";
 
 type PlanMeal = {
@@ -54,7 +54,7 @@ const CUISINE_CHIPS = [
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 export default function PlanPage() {
-  const [lang, setLang] = useState<Lang>("ar");
+  const [lang, setLang] = useLang();
   const t = dict[lang];
   const tp = t.plan;
   const { data: session, status } = useSession();

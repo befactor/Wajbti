@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
-import { dict, Lang } from "@/lib/i18n";
+import { dict, useLang } from "@/lib/i18n";
 import TabsBar from "@/app/components/TabsBar";
 
 type PortionComponent = {
@@ -59,7 +59,7 @@ type SpeechRecognitionLike = {
 };
 
 export default function Home() {
-  const [lang, setLang] = useState<Lang>("ar");
+  const [lang, setLang] = useLang();
   const t = dict[lang];
   const { data: session, status } = useSession();
   const [description, setDescription] = useState("");
