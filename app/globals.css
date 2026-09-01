@@ -15,7 +15,7 @@ body {
   font-family: "Cairo", sans-serif;
   color: var(--tanoor);
 }
-.container { max-width: 480px; margin: 0 auto; padding: 24px 20px 90px; min-height: 100vh; }
+.container { max-width: 480px; margin: 0 auto; padding: calc(24px + env(safe-area-inset-top)) 20px 90px; min-height: 100vh; }
 .container:has(> .form-card) { display: flex; flex-direction: column; justify-content: center; }
 .brand { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 6px; }
 .brand-mark {
@@ -28,7 +28,7 @@ body {
 h1.title { font-family: "El Messiri", sans-serif; font-size: 26px; font-weight: 700; }
 .tagline { text-align: center; color: var(--taupe); font-size: 13px; margin-bottom: 28px; }
 .lang-toggle {
-  position: fixed; top: 16px; inset-inline-end: 16px;
+  position: fixed; top: calc(16px + env(safe-area-inset-top)); inset-inline-end: 16px;
   background: var(--card); border: 1px solid var(--line); border-radius: 20px;
   padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; z-index: 10;
 }
