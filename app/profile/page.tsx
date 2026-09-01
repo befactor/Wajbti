@@ -349,7 +349,7 @@ export default function ProfilePage() {
               borderRadius: 14,
               padding: "12px 14px",
               fontFamily: "Cairo",
-              fontSize: 14,
+              fontSize: 16,
             }}
           />
           <button
