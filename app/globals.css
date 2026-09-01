@@ -15,7 +15,7 @@ body {
   font-family: "Cairo", sans-serif;
   color: var(--tanoor);
 }
-.container { max-width: 480px; margin: 0 auto; padding: calc(24px + env(safe-area-inset-top)) 20px 90px; min-height: 100vh; }
+.container { max-width: 480px; margin: 0 auto; padding: calc(24px + env(safe-area-inset-top)) 20px calc(90px + env(safe-area-inset-bottom)); min-height: 100vh; }
 .container:has(> .form-card) { display: flex; flex-direction: column; justify-content: center; }
 .brand { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 6px; }
 .brand-mark {
