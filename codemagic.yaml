@@ -14,6 +14,7 @@ workflows:
       vars:
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
+        APP_APPLE_ID: 6807524821
       node: 22.11.0
       xcode: latest
     scripts:
@@ -23,6 +24,13 @@ workflows:
       - name: Sync Capacitor iOS project
         script: |
           npx cap sync ios
+      - name: Increment build number
+        script: |
+          #!/usr/bin/env bash
+          set -e
+          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-build-number $APP_APPLE_ID)
+          cd ios/App
+          agvtool new-version -all $(($LATEST_BUILD_NUMBER + 1))
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
