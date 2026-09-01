@@ -24,6 +24,13 @@ workflows:
       - name: Sync Capacitor iOS project
         script: |
           npx cap sync ios
+      - name: Debug - show generated capacitor config
+        script: |
+          echo "----- capacitor.config.ts -----"
+          cat capacitor.config.ts
+          echo ""
+          echo "----- ios/App/App/capacitor.config.json (generated) -----"
+          cat ios/App/App/capacitor.config.json || echo "FILE NOT FOUND"
       - name: Increment build number
         script: |
           #!/usr/bin/env bash
