@@ -7,8 +7,10 @@ workflows:
       app_store_connect: wajbti_asc
     environment:
       ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.wajbti.app
+        provisioning_profiles:
+          - wajbti_app_store_profile
+        certificates:
+          - wajbti-distribution
       vars:
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
