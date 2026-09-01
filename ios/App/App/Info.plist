@@ -24,6 +24,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSHealthShareUsageDescription</key>
+	<string>وجبتي بتستخدم بيانات الخطوات من تطبيق الصحة لتقدير السعرات المحروقة من نشاطك اليومي وحساب صافي سعراتك بدقة أكبر.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

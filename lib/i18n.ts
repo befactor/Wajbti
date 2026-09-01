@@ -135,6 +135,8 @@ export const dict = {
       favoritesEmpty: "لسا ما عندك أكلات مفضلة. أضف وحدة من شاشة التحليل بعد ما تحلل وجبة.",
       logFavorite: "سجّل الآن",
       favoriteLogged: "✓ انسجلت باليوميات",
+      stepsToday: "خطوات اليوم",
+      activityBurned: "محروق من النشاط",
     },
     plan: {
       title: "خطة الطعام الذكية",
@@ -324,6 +326,8 @@ export const dict = {
       favoritesEmpty: "No favorite meals yet. Add one from the analyze screen after analyzing a meal.",
       logFavorite: "Log now",
       favoriteLogged: "✓ Added to your diary",
+      stepsToday: "Steps today",
+      activityBurned: "Burned from activity",
     },
     plan: {
       title: "Smart Meal Plan",

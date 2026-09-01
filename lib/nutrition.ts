@@ -84,6 +84,13 @@ export function calculateDailyWaterTargetMl(
   return Math.round((base + WATER_ACTIVITY_BONUS_ML[activityLevel]) / 50) * 50;
 }
 
+// ~0.0005 kcal per step per kg of body weight - a standard walking-energy-
+// expenditure approximation (roughly 300-400 kcal per 10,000 steps at 70kg).
+export function estimateCaloriesBurnedFromSteps(steps: number, weightKg: number): number {
+  if (steps <= 0 || weightKg <= 0) return 0;
+  return Math.round(steps * weightKg * 0.0005);
+}
+
 // "Flexibility instead of restriction": if the meals logged so far already
 // ate up most of the daily target, nudge the next meal to go lighter on
 // carbs/fat instead of letting the user feel like they've already failed
