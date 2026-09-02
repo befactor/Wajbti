@@ -53,6 +53,7 @@ export default function DiaryPage() {
   const [calorieTarget, setCalorieTarget] = useState<number | null>(null);
   const [weightKg, setWeightKg] = useState<number | null>(null);
   const [stepsToday, setStepsToday] = useState<number | null>(null);
+  const [stepsDebug, setStepsDebug] = useState<string | null>(null);
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
   const [ramadanMode, setRamadanMode] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -100,11 +101,19 @@ export default function DiaryPage() {
   useEffect(() => {
     if (status !== "authenticated" || !Capacitor.isNativePlatform() || dateStr !== localDateStr()) {
       setStepsToday(null);
+      setStepsDebug(`skipped: status=${status} native=${Capacitor.isNativePlatform()} dateStr=${dateStr} today=${localDateStr()}`);
       return;
     }
+    setStepsDebug("calling getTodaySteps...");
     Steps.getTodaySteps()
-      .then((data) => setStepsToday(Math.round(data.steps)))
-      .catch(() => setStepsToday(null));
+      .then((data) => {
+        setStepsToday(Math.round(data.steps));
+        setStepsDebug(`ok: ${JSON.stringify(data)}`);
+      })
+      .catch((err) => {
+        setStepsToday(null);
+        setStepsDebug(`error: ${err?.message || err?.code || JSON.stringify(err) || String(err)}`);
+      });
   }, [status, dateStr]);
 
   useEffect(() => {
@@ -350,6 +359,12 @@ export default function DiaryPage() {
           {calorieTarget != null && (
             <p style={{ textAlign: "center", fontSize: 11.5, color: "var(--taupe)", marginBottom: stepsToday != null ? 6 : 20 }}>
               {td.consumed}: {Math.round(totals.calories)} / {td.goal}: {Math.round(calorieTarget)} kcal
+            </p>
+          )}
+
+          {stepsDebug != null && (
+            <p style={{ textAlign: "center", fontSize: 10, color: "red", direction: "ltr", padding: "0 10px" }}>
+              STEPS DEBUG: {stepsDebug}
             </p>
           )}
 
