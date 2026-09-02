@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { dict, useLang } from "@/lib/i18n";
+import { localDateStr } from "@/lib/date";
 import TabsBar from "@/app/components/TabsBar";
 
 type PortionComponent = {
@@ -254,6 +255,7 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          date: localDateStr(),
           slot: selectedSlot,
           description,
           inputType: result.input_type || "text",
