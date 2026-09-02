@@ -63,7 +63,7 @@ export default function SignInPage() {
           disabled={!appleEnabled}
           onClick={() => signIn("apple", { callbackUrl: "/" })}
         >
-          🍎 {ta.appleComingSoon}
+          🍎 {ta.signInWithApple}
         </button>
 
         <div className="divider">{ta.or}</div>

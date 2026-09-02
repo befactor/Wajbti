@@ -5,6 +5,7 @@ import AppleProvider from "next-auth/providers/apple";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { generateAppleClientSecret } from "@/lib/appleClientSecret";
 
 const providers: NextAuthOptions["providers"] = [
   CredentialsProvider({
@@ -46,14 +47,14 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   );
 }
 
-// Apple Sign-In: required alongside Google once shipped to the App Store,
-// but the Apple Developer account is still being set up (see project notes)
-// so this stays disabled until APPLE_CLIENT_ID/APPLE_CLIENT_SECRET exist.
-if (process.env.APPLE_CLIENT_ID && process.env.APPLE_CLIENT_SECRET) {
+// Apple Sign-In: only registered once the Services ID, Team ID, Key ID, and
+// private key (see lib/appleClientSecret.ts) are all in place.
+const appleClientSecret = generateAppleClientSecret();
+if (process.env.APPLE_CLIENT_ID && appleClientSecret) {
   providers.push(
     AppleProvider({
       clientId: process.env.APPLE_CLIENT_ID,
-      clientSecret: process.env.APPLE_CLIENT_SECRET,
+      clientSecret: appleClientSecret,
       // Same reasoning as Google - see comment above.
       allowDangerousEmailAccountLinking: true,
     })
