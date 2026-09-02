@@ -32,6 +32,10 @@
 	<string>وجبتي بتستخدم الكاميرا لتصوير وجبتك وتحليلها بالذكاء الاصطناعي لحساب السعرات والقيم الغذائية.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>وجبتي بتستخدم مكتبة الصور لاختيار صورة وجبة موجودة عندك وتحليلها بالذكاء الاصطناعي.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>وجبتي بتستخدم المايك عشان تسمح لك تحكي وصف وجبتك بدل الكتابة.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>وجبتي بتستخدم التعرّف على الصوت لتحويل وصفك المنطوق لوجبتك إلى نص يتم تحليله.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
