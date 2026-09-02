@@ -24,6 +24,21 @@ workflows:
       - name: Sync Capacitor iOS project
         script: |
           npx cap sync ios
+      - name: Register local native plugins
+        script: |
+          # `cap sync` only discovers plugin classes from npm-installed Capacitor
+          # plugins - it has no way to see StepsPlugin.swift, which lives
+          # directly in ios/App/App/ and isn't an npm package. Without this,
+          # the JS side gets "plugin is not implemented on iOS" for it.
+          node -e "
+            const fs = require('fs');
+            const path = 'ios/App/App/capacitor.config.json';
+            const cfg = JSON.parse(fs.readFileSync(path, 'utf-8'));
+            const list = new Set(cfg.packageClassList || []);
+            list.add('StepsPlugin');
+            cfg.packageClassList = Array.from(list);
+            fs.writeFileSync(path, JSON.stringify(cfg, null, '\t'));
+          "
       - name: Debug - show generated capacitor config
         script: |
           echo "----- capacitor.config.ts -----"
