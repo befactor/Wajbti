@@ -36,6 +36,12 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      // Google verifies email ownership itself, so it's safe to link a
+      // Google sign-in to an existing account with the same email instead
+      // of NextAuth's default of blocking it (OAuthAccountNotLinked) -
+      // otherwise users who registered with email/password first can never
+      // use "Sign in with Google" afterward.
+      allowDangerousEmailAccountLinking: true,
     })
   );
 }
@@ -48,6 +54,8 @@ if (process.env.APPLE_CLIENT_ID && process.env.APPLE_CLIENT_SECRET) {
     AppleProvider({
       clientId: process.env.APPLE_CLIENT_ID,
       clientSecret: process.env.APPLE_CLIENT_SECRET,
+      // Same reasoning as Google - see comment above.
+      allowDangerousEmailAccountLinking: true,
     })
   );
 }
