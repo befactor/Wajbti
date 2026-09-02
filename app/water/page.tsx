@@ -114,7 +114,7 @@ export default function WaterPage() {
         notifications: slots.map((slot, i) => ({
           id: WATER_NOTIF_ID_BASE + i,
           title: tw.title,
-          body: lang === "ar" ? "وقت شرب المية 💧" : "Time to drink water 💧",
+          body: lang === "ar" ? "حان وقت شرب الماء 💧" : "Time to drink water 💧",
           schedule: { on: { hour: slot.hour, minute: slot.minute }, allowWhileIdle: true },
         })),
       });
@@ -150,7 +150,7 @@ export default function WaterPage() {
       if (delay > 0) {
         const timer = setTimeout(() => {
           new Notification(tw.title, {
-            body: lang === "ar" ? "وقت شرب المية 💧" : "Time to drink water 💧",
+            body: lang === "ar" ? "حان وقت شرب الماء 💧" : "Time to drink water 💧",
           });
         }, delay);
         timersRef.current.push(timer);

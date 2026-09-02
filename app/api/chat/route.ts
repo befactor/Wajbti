@@ -51,14 +51,14 @@ async function buildUserContext(userId: string, foodNotes: string[]): Promise<st
       lines.push(`هدف السعرات اليومي: ${Math.round(profile.dailyCalorieTarget)} kcal`);
     if (profile.ramadanMode) lines.push("وضع رمضان مفعّل حالياً");
   } else {
-    lines.push("المستخدم لسا ما أكمل ملفه الشخصي (بدون بيانات BMR/TDEE دقيقة)");
+    lines.push("لم يُكمل المستخدم ملفه الشخصي بعد (دون بيانات BMR/TDEE دقيقة)");
   }
 
   if (todayMeals.length > 0) {
     const consumed = todayMeals.reduce((s, m) => s + m.totalCalories, 0);
     lines.push(`سعرات مستهلكة اليوم لحد الآن: ${Math.round(consumed)} kcal عبر ${todayMeals.length} وجبة/وجبات مسجّلة`);
   } else {
-    lines.push("ما سجّل أي وجبة اليوم لحد الآن");
+    lines.push("لم يُسجّل أي وجبة اليوم حتى الآن");
   }
 
   if (foodNotes.length > 0) {

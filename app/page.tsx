@@ -197,7 +197,7 @@ export default function Home() {
         setResult(data);
       }
     } catch (e) {
-      setError(lang === "ar" ? "صار خطأ، جرب مرة تانية" : "Something went wrong, try again");
+      setError(lang === "ar" ? "حدث خطأ، حاول مرة أخرى" : "Something went wrong, try again");
     } finally {
       setLoading(false);
     }
@@ -232,7 +232,7 @@ export default function Home() {
     }
     // المستخدم يصحح اسم الأكلة بس - الأرقام (سعرات/وزن) مسؤولية النظام حصراً
     const correctedFoodName = window.prompt(
-      lang === "ar" ? "شو اسم الأكلة الصحيح؟" : "What's the correct food name?"
+      lang === "ar" ? "ما هو الاسم الصحيح للطعام؟" : "What's the correct food name?"
     );
     if (!correctedFoodName) return;
     await fetch("/api/feedback", {
@@ -482,7 +482,7 @@ export default function Home() {
 
           {result.items?.some((i) => i.hidden_fat_detected) && (
             <div className="hidden-fat-flag">
-              ⚠️ {lang === "ar" ? "رصدنا دهون مخفية بالوجبة" : "Hidden fats detected in this meal"}
+              ⚠️ {lang === "ar" ? "رصدنا دهوناً خفية في الوجبة" : "Hidden fats detected in this meal"}
             </div>
           )}
 

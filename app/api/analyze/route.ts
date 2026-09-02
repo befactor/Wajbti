@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     }
     if (diningMode) {
       textPrompt +=
-        "\n\nملاحظة سياق: هاي الوجبة من برا البيت (مطعم/بوفيه/عزومة) - المستخدم ما طبخها بنفسه وما بيعرف تفاصيل الوصفة بدقة. وسّع هامش تقديرك خصوصاً للزيت/السمن/الصوصات المخفية، واذكر بوضوح إن دقة التقدير أقل من وجبة بيتية.";
+        "\n\nملاحظة سياق: هذه الوجبة من خارج المنزل (مطعم/بوفيه/دعوة) - لم يُعدّها المستخدم بنفسه ولا يعرف تفاصيل الوصفة بدقة. وسّع هامش تقديرك خصوصاً للزيت/السمن/الصلصات الخفية، واذكر بوضوح أن دقة التقدير أقل من الوجبة المنزلية.";
     }
     if (pregnancyStatus === "pregnant") {
       textPrompt +=
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
     }
     if (pregnancyStatus === "breastfeeding") {
       textPrompt +=
-        "\n\nملاحظة سياق: المستخدمة مرضعة حالياً. راعِ هيك بنصيحتك (احتياج غذائي إضافي، سوائل).";
+        "\n\nملاحظة سياق: المستخدمة مرضعة حالياً. راعِ ذلك في نصيحتك (احتياج غذائي إضافي، سوائل).";
     }
     if (retrievedCorrections.length > 0) {
       textPrompt += `\n\nretrieved_corrections: ${JSON.stringify(retrievedCorrections)}`;

@@ -178,7 +178,7 @@ export default function DiaryPage() {
     if (localStorage.getItem(storageKey)) return;
 
     new Notification(td.title, {
-      body: lang === "ar" ? "لسا ما سجّلت وجبة اليوم 🍽️" : "You haven't logged a meal today yet 🍽️",
+      body: lang === "ar" ? "لم تُسجّل وجبة اليوم بعد 🍽️" : "You haven't logged a meal today yet 🍽️",
     });
     localStorage.setItem(storageKey, "1");
   }, [status, loading, dateStr, notifPermission, meals, lang, td.title]);
