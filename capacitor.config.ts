@@ -14,6 +14,11 @@ const config: CapacitorConfig = {
   server: {
     url: 'https://wajbti-kohl.vercel.app',
     cleartext: false,
+    // Without this, Capacitor's WebView refuses to navigate to any domain
+    // other than the app's own origin and kicks the navigation out to the
+    // system browser instead - which is exactly what happens mid-OAuth-flow
+    // when Google/Apple sign-in redirects to their own login pages.
+    allowNavigation: ['accounts.google.com', 'appleid.apple.com'],
   },
 };
 
