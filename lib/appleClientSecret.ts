@@ -14,31 +14,39 @@ export function generateAppleClientSecret(): string | null {
 
   if (!teamId || !keyId || !clientId || !privateKey) return null;
 
-  const base64url = (input: Buffer | string) =>
-    Buffer.from(input).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  // A malformed APPLE_PRIVATE_KEY must not crash this module - every other
+  // sign-in method (Google, credentials) is built in the same file and
+  // would go down with it.
+  try {
+    const base64url = (input: Buffer | string) =>
+      Buffer.from(input).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
-  const header = base64url(JSON.stringify({ alg: "ES256", kid: keyId }));
-  const now = Math.floor(Date.now() / 1000);
-  const payload = base64url(
-    JSON.stringify({
-      iss: teamId,
-      iat: now,
-      // Apple's hard cap is 6 months (15777000s) - stay comfortably under it.
-      exp: now + 60 * 60 * 24 * 150,
-      aud: "https://appleid.apple.com",
-      sub: clientId,
-    })
-  );
+    const header = base64url(JSON.stringify({ alg: "ES256", kid: keyId }));
+    const now = Math.floor(Date.now() / 1000);
+    const payload = base64url(
+      JSON.stringify({
+        iss: teamId,
+        iat: now,
+        // Apple's hard cap is 6 months (15777000s) - stay comfortably under it.
+        exp: now + 60 * 60 * 24 * 150,
+        aud: "https://appleid.apple.com",
+        sub: clientId,
+      })
+    );
 
-  const signature = crypto
-    .sign("sha256", Buffer.from(`${header}.${payload}`), {
-      key: privateKey,
-      dsaEncoding: "ieee-p1363",
-    })
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
+    const signature = crypto
+      .sign("sha256", Buffer.from(`${header}.${payload}`), {
+        key: privateKey,
+        dsaEncoding: "ieee-p1363",
+      })
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
 
-  return `${header}.${payload}.${signature}`;
+    return `${header}.${payload}.${signature}`;
+  } catch (err) {
+    console.error("Failed to generate Apple client secret - check APPLE_PRIVATE_KEY format:", err);
+    return null;
+  }
 }
