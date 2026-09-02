@@ -5,7 +5,7 @@ import { useLang } from "@/lib/i18n";
 
 type Lang = "ar" | "en";
 
-const CONTACT_EMAIL = "support@wajbti.app"; // TODO: replace with your real support address
+const CONTACT_EMAIL = "mohdaymanfathalla@gmail.com";
 
 const content: Record<Lang, { title: string; updated: string; sections: { h: string; p: string[] }[] }> = {
   ar: {
