@@ -45,6 +45,9 @@ export default function ProfilePage() {
   const [newWeight, setNewWeight] = useState("");
   const [loggingWeight, setLoggingWeight] = useState(false);
   const [foodNotes, setFoodNotes] = useState<Array<{ id: string; note: string }>>([]);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   function loadWeightHistory() {
     fetch("/api/weight")
@@ -63,6 +66,25 @@ export default function ProfilePage() {
   async function deleteFoodNote(id: string) {
     setFoodNotes((prev) => prev.filter((n) => n.id !== id));
     await fetch(`/api/food-notes/${id}`, { method: "DELETE" }).catch(() => {});
+  }
+
+  async function deleteAccount() {
+    setDeleteError("");
+    setDeletingAccount(true);
+    let res: Response;
+    try {
+      res = await fetch("/api/account", { method: "DELETE" });
+    } catch {
+      setDeletingAccount(false);
+      setDeleteError(tp.deleteAccountError);
+      return;
+    }
+    if (!res.ok) {
+      setDeletingAccount(false);
+      setDeleteError(tp.deleteAccountError);
+      return;
+    }
+    await signOut({ callbackUrl: "/" });
   }
 
   useEffect(() => {
@@ -377,6 +399,77 @@ export default function ProfilePage() {
           ))}
         </div>
       )}
+
+      <div className="form-card">
+        <h3 style={{ fontFamily: "El Messiri", fontSize: 15, marginBottom: 10, color: "var(--sumac)" }}>
+          {tp.dangerZoneTitle}
+        </h3>
+        {!confirmingDelete ? (
+          <>
+            <p className="hint" style={{ marginBottom: 12 }}>{tp.deleteAccountHint}</p>
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(true)}
+              style={{
+                width: "100%",
+                background: "none",
+                border: "1px solid var(--sumac)",
+                color: "var(--sumac)",
+                borderRadius: 14,
+                padding: "12px 14px",
+                fontFamily: "Cairo",
+                fontSize: 14,
+                cursor: "pointer",
+              }}
+            >
+              {tp.deleteAccount}
+            </button>
+          </>
+        ) : (
+          <>
+            <p style={{ marginBottom: 12, fontSize: 13.5, color: "var(--sumac)" }}>{tp.deleteAccountConfirm}</p>
+            {deleteError && <p className="error-text">{deleteError}</p>}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                onClick={deleteAccount}
+                disabled={deletingAccount}
+                style={{
+                  flex: 1,
+                  background: "var(--sumac)",
+                  border: "none",
+                  color: "#fff",
+                  borderRadius: 14,
+                  padding: "12px 14px",
+                  fontFamily: "Cairo",
+                  fontSize: 14,
+                  cursor: "pointer",
+                  opacity: deletingAccount ? 0.7 : 1,
+                }}
+              >
+                {tp.deleteAccountConfirmCta}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmingDelete(false)}
+                disabled={deletingAccount}
+                style={{
+                  flex: 1,
+                  background: "none",
+                  border: "1px solid var(--line)",
+                  borderRadius: 14,
+                  padding: "12px 14px",
+                  fontFamily: "Cairo",
+                  fontSize: 14,
+                  cursor: "pointer",
+                }}
+              >
+                {tp.deleteAccountCancel}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
 
       <TabsBar lang={lang} />
     </div>
