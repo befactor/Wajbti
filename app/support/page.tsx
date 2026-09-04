@@ -21,7 +21,7 @@ const content: Record<Lang, { title: string; intro: string; sections: { h: strin
         p: [
           "هل التطبيق لا يحلل الوجبة بدقة؟ استخدم زر \"تصحيح\" بعد التحليل لتصحيح النتيجة — يساعدنا ذلك على تحسين الدقة بمرور الوقت.",
           "هل نسيت كلمة المرور؟ راسلنا على البريد الإلكتروني أعلاه وسنساعدك على استعادة حسابك.",
-          "هل تريد حذف حسابك وبياناتك بالكامل؟ راسلنا على البريد الإلكتروني أعلاه وسننفّذ الطلب خلال أيام قليلة.",
+          "هل تريد حذف حسابك وبياناتك بالكامل؟ تقدر تحذفه بنفسك مباشرة من داخل التطبيق: الملف الشخصي ← \"حذف الحساب\" بأسفل الصفحة. الحذف فوري ونهائي.",
         ],
       },
     ],
@@ -39,7 +39,7 @@ const content: Record<Lang, { title: string; intro: string; sections: { h: strin
         p: [
           "Meal analysis looks off? Use the \"Fix\" button after analyzing to correct it - this helps us improve accuracy over time.",
           "Forgot your password? Email us at the address above and we'll help you recover your account.",
-          "Want your account and data deleted entirely? Email us at the address above and we'll process it within a few days.",
+          "Want your account and data deleted entirely? You can delete it yourself right in the app: Profile → \"Delete account\" at the bottom of the page. Deletion is immediate and permanent.",
         ],
       },
     ],

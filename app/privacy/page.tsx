@@ -37,7 +37,7 @@ const content: Record<Lang, { title: string; updated: string; sections: { h: str
       {
         h: "الاحتفاظ ببياناتك",
         p: [
-          "نحتفظ ببياناتك طوال فترة نشاط حسابك. يمكنك طلب حذف حسابك وجميع بياناتك بالتواصل معنا عبر البريد الإلكتروني أدناه.",
+          "نحتفظ ببياناتك طوال فترة نشاط حسابك. يمكنك حذف حسابك وجميع بياناتك فوراً بنفسك من داخل التطبيق (الملف الشخصي ← حذف الحساب)، أو بالتواصل معنا عبر البريد الإلكتروني أدناه.",
         ],
       },
       {
@@ -84,7 +84,7 @@ const content: Record<Lang, { title: string; updated: string; sections: { h: str
       },
       {
         h: "Data retention",
-        p: ["We retain your data while your account is active. You can request deletion of your account and all associated data by contacting us at the email below."],
+        p: ["We retain your data while your account is active. You can delete your account and all associated data immediately, yourself, right in the app (Profile → Delete account), or by contacting us at the email below."],
       },
       {
         h: "Health disclaimer",

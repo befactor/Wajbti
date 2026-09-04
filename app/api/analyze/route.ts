@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     if (!description && !imageBase64) {
       return NextResponse.json(
-        { error: "لازم توفر وصف أو صورة للوجبة" },
+        { error: "missingInputError" },
         { status: 400 }
       );
     }
@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     console.error("Wajbti analyze error:", err);
     return NextResponse.json(
-      { error: "صار خطأ بالتحليل، جرب مرة تانية" },
+      { error: "analyzeError" },
       { status: 500 }
     );
   }

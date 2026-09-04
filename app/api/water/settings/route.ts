@@ -32,7 +32,7 @@ export async function PUT(req: NextRequest) {
     endHour > 23 ||
     startHour === endHour
   ) {
-    return NextResponse.json({ error: "إعدادات غير صحيحة" }, { status: 400 });
+    return NextResponse.json({ error: "invalidSettingsError" }, { status: 400 });
   }
 
   const settings = await prisma.waterSettings.upsert({

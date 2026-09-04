@@ -81,6 +81,8 @@ export default function Home() {
   const [feedbackGiven, setFeedbackGiven] = useState(false);
   const [savingFavorite, setSavingFavorite] = useState(false);
   const [savedToFavorites, setSavedToFavorites] = useState(false);
+  const [diaryError, setDiaryError] = useState("");
+  const [favoriteError, setFavoriteError] = useState("");
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -194,7 +196,13 @@ export default function Home() {
       });
       const data = await res.json();
       if (data.error) {
-        setError(data.error);
+        setError(
+          data.error === "missingInputError"
+            ? t.missingInputError
+            : data.error === "analyzeError"
+            ? t.analyzeError
+            : t.auth.genericError
+        );
       } else {
         setResult(data);
       }
@@ -251,6 +259,7 @@ export default function Home() {
   async function addToDiary() {
     if (!result) return;
     setSavingMeal(true);
+    setDiaryError("");
     try {
       const res = await fetch("/api/meals", {
         method: "POST",
@@ -268,9 +277,13 @@ export default function Home() {
         }),
       });
       const data = await res.json();
-      if (!data.error) setSavedToDiary(true);
+      if (data.error) {
+        setDiaryError(t.diaryAddError);
+      } else {
+        setSavedToDiary(true);
+      }
     } catch {
-      // no-op: user can retry
+      setDiaryError(t.diaryAddError);
     } finally {
       setSavingMeal(false);
     }
@@ -279,6 +292,7 @@ export default function Home() {
   async function addToFavorites() {
     if (!result) return;
     setSavingFavorite(true);
+    setFavoriteError("");
     try {
       const foodName =
         result.items?.map((i) => (lang === "ar" ? i.food_name : i.food_name_en || i.food_name)).join("، ") ||
@@ -289,9 +303,13 @@ export default function Home() {
         body: JSON.stringify({ foodName, items: result.items, totals: result.totals }),
       });
       const data = await res.json();
-      if (!data.error) setSavedToFavorites(true);
+      if (data.error) {
+        setFavoriteError(t.favoriteAddError);
+      } else {
+        setSavedToFavorites(true);
+      }
     } catch {
-      // no-op: user can retry
+      setFavoriteError(t.favoriteAddError);
     } finally {
       setSavingFavorite(false);
     }
@@ -566,6 +584,11 @@ export default function Home() {
                   <button className="analyze-cta" onClick={addToDiary} disabled={savingMeal}>
                     {t.addToDiaryCta}
                   </button>
+                  {diaryError && (
+                    <p style={{ color: "var(--sumac)", fontSize: 12.5, marginTop: 10, textAlign: "center" }}>
+                      {diaryError}
+                    </p>
+                  )}
                 </>
               ) : (
                 <>
@@ -587,14 +610,21 @@ export default function Home() {
                 {t.addedToFavorites}
               </p>
             ) : (
-              <button
-                className="analyze-cta"
-                style={{ background: "var(--card)", color: "var(--tanoor)", border: "1px solid var(--line)" }}
-                onClick={addToFavorites}
-                disabled={savingFavorite}
-              >
-                {t.addToFavorites}
-              </button>
+              <>
+                <button
+                  className="analyze-cta"
+                  style={{ background: "var(--card)", color: "var(--tanoor)", border: "1px solid var(--line)" }}
+                  onClick={addToFavorites}
+                  disabled={savingFavorite}
+                >
+                  {t.addToFavorites}
+                </button>
+                {favoriteError && (
+                  <p style={{ color: "var(--sumac)", fontSize: 12.5, marginTop: 10, textAlign: "center" }}>
+                    {favoriteError}
+                  </p>
+                )}
+              </>
             ))}
 
           <button

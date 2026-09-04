@@ -69,6 +69,8 @@ export default function PlanPage() {
   const [preferencesText, setPreferencesText] = useState("");
   const [keepCandidates, setKeepCandidates] = useState<string[]>([]);
   const [keepMeals, setKeepMeals] = useState<string[]>([]);
+  const [pendingToggles, setPendingToggles] = useState<Set<string>>(new Set());
+  const [toggleError, setToggleError] = useState("");
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -104,7 +106,13 @@ export default function PlanPage() {
       });
       const data = await res.json();
       if (data.error) {
-        setError(data.error);
+        setError(
+          data.error === "noProfileError"
+            ? tp.noProfile
+            : data.error === "planTruncatedError"
+            ? tp.planTruncatedError
+            : t.auth.genericError
+        );
       } else {
         setPlan(data.plan);
         setShowPreferences(false);
@@ -114,7 +122,7 @@ export default function PlanPage() {
         setKeepMeals([]);
       }
     } catch {
-      setError(tp.title);
+      setError(t.auth.genericError);
     } finally {
       setGenerating(false);
     }
@@ -138,6 +146,9 @@ export default function PlanPage() {
   async function toggleMealDone(dayIndex: number, slot: string, completed: boolean) {
     if (!plan) return;
     const key = `${dayIndex}-${slot}`;
+    if (pendingToggles.has(key)) return;
+    setPendingToggles((prev) => new Set(prev).add(key));
+    setToggleError("");
     setPlan((prev) =>
       prev
         ? {
@@ -155,9 +166,40 @@ export default function PlanPage() {
         body: JSON.stringify({ dayIndex, slot, completed }),
       });
       const data = await res.json();
-      if (data.plan) setPlan(data.plan);
+      if (data.plan) {
+        setPlan(data.plan);
+      } else {
+        // Failed - roll the optimistic checkbox flip back to match the server.
+        setPlan((prev) =>
+          prev
+            ? {
+                ...prev,
+                completedMeals: completed
+                  ? (prev.completedMeals || []).filter((k) => k !== key)
+                  : [...(prev.completedMeals || []), key],
+              }
+            : prev
+        );
+        setToggleError(tp.toggleMealError);
+      }
     } catch {
-      // leave the optimistic state - the user can just toggle again
+      setPlan((prev) =>
+        prev
+          ? {
+              ...prev,
+              completedMeals: completed
+                ? (prev.completedMeals || []).filter((k) => k !== key)
+                : [...(prev.completedMeals || []), key],
+            }
+          : prev
+      );
+      setToggleError(tp.toggleMealError);
+    } finally {
+      setPendingToggles((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
     }
   }
 
@@ -329,6 +371,7 @@ export default function PlanPage() {
                           <input
                             type="checkbox"
                             checked={!!isDone}
+                            disabled={pendingToggles.has(`${idx}-${meal.slot}`)}
                             onChange={(e) => toggleMealDone(idx, meal.slot, e.target.checked)}
                             style={{ width: "auto", flexShrink: 0 }}
                           />
@@ -347,6 +390,8 @@ export default function PlanPage() {
                   })}
                 </div>
               ))}
+
+              {toggleError && <p className="error-text" style={{ textAlign: "center" }}>{toggleError}</p>}
 
               {planIsActive && !showPreferences && (
                 <>

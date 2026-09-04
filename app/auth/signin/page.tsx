@@ -24,13 +24,18 @@ export default function SignInPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-    const res = await signIn("credentials", { redirect: false, email, password });
-    setLoading(false);
-    if (res?.error) {
-      setError(ta.invalidCredentials);
-      return;
+    try {
+      const res = await signIn("credentials", { redirect: false, email, password });
+      if (res?.error) {
+        setError(ta.invalidCredentials);
+        return;
+      }
+      router.push("/");
+    } catch {
+      setError(ta.genericError);
+    } finally {
+      setLoading(false);
     }
-    router.push("/");
   }
 
   return (

@@ -56,6 +56,10 @@ export default function WaterPage() {
   const [notifPermission, setNotifPermission] = useState<NotificationPermission | "unsupported">(
     "default"
   );
+  const [waterError, setWaterError] = useState("");
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settingsError, setSettingsError] = useState("");
+  const [settingsSaved, setSettingsSaved] = useState(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const isNative = Capacitor.isNativePlatform();
 
@@ -174,13 +178,24 @@ export default function WaterPage() {
 
   async function addWater(amountMl: number) {
     setTotalMl((prev) => prev + amountMl);
-    const res = await fetch("/api/water", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amountMl }),
-    });
-    const data = await res.json();
-    if (data.log) setLogs((prev) => [...prev, data.log]);
+    setWaterError("");
+    try {
+      const res = await fetch("/api/water", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amountMl }),
+      });
+      const data = await res.json();
+      if (data.log) {
+        setLogs((prev) => [...prev, data.log]);
+      } else {
+        setTotalMl((prev) => prev - amountMl);
+        setWaterError(tw.addWaterError);
+      }
+    } catch {
+      setTotalMl((prev) => prev - amountMl);
+      setWaterError(tw.addWaterError);
+    }
   }
 
   async function undoLast() {
@@ -194,13 +209,27 @@ export default function WaterPage() {
   async function saveSettings(e: React.FormEvent) {
     e.preventDefault();
     if (!settings) return;
-    const res = await fetch("/api/water/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(settings),
-    });
-    const data = await res.json();
-    if (data.settings) setSettings(data.settings);
+    setSavingSettings(true);
+    setSettingsError("");
+    setSettingsSaved(false);
+    try {
+      const res = await fetch("/api/water/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
+      const data = await res.json();
+      if (data.settings) {
+        setSettings(data.settings);
+        setSettingsSaved(true);
+      } else {
+        setSettingsError(data.error === "invalidSettingsError" ? tw.invalidSettingsError : t.auth.genericError);
+      }
+    } catch {
+      setSettingsError(t.auth.genericError);
+    } finally {
+      setSavingSettings(false);
+    }
   }
 
   if (status === "loading" || loading) {
@@ -286,6 +315,7 @@ export default function WaterPage() {
         <button onClick={() => addWater(250)}>+ {tw.addGlass}</button>
         <button onClick={() => addWater(500)}>+ {tw.addBottle}</button>
       </div>
+      {waterError && <p className="error-text" style={{ textAlign: "center" }}>{waterError}</p>}
       {logs.length > 0 && (
         <button className="analyze-cta" onClick={undoLast} style={{ background: "var(--card)", color: "var(--tanoor)", border: "1px solid var(--line)" }}>
           {tw.undo}
@@ -350,9 +380,15 @@ export default function WaterPage() {
             />
           </div>
 
-          <button className="analyze-cta" type="submit">
+          <button className="analyze-cta" type="submit" disabled={savingSettings}>
             {tw.saveSettings}
           </button>
+          {settingsError && <p className="error-text" style={{ marginTop: 10, textAlign: "center" }}>{settingsError}</p>}
+          {settingsSaved && (
+            <p style={{ color: "var(--zaatar)", fontSize: 12.5, marginTop: 10, textAlign: "center" }}>
+              {tw.settingsSaved}
+            </p>
+          )}
         </form>
       )}
 

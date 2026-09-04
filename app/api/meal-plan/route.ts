@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -48,15 +49,15 @@ export async function PATCH(req: NextRequest) {
   const slot = typeof body.slot === "string" ? body.slot : "";
   const completed = Boolean(body.completed);
   if (!Number.isInteger(dayIndex) || dayIndex < 0 || !slot) {
-    return NextResponse.json({ error: "بيانات غير صحيحة" }, { status: 400 });
+    return NextResponse.json({ error: "invalidDataError" }, { status: 400 });
   }
 
   const plan = await prisma.mealPlan.findFirst({ where: { userId }, orderBy: { createdAt: "desc" } });
-  if (!plan) return NextResponse.json({ error: "ما في خطة حالياً" }, { status: 404 });
+  if (!plan) return NextResponse.json({ error: "noPlanError" }, { status: 404 });
 
   const days = (plan.days as unknown as PlanDay[]) || [];
   const meal = days[dayIndex]?.meals?.find((m) => m.slot === slot);
-  if (!meal) return NextResponse.json({ error: "الوجبة غير موجودة بالخطة" }, { status: 404 });
+  if (!meal) return NextResponse.json({ error: "mealNotFoundError" }, { status: 404 });
 
   const key = `${dayIndex}-${slot}`;
   const current = ((plan.completedMeals as unknown as string[]) || []).filter((k) => k !== key);
@@ -65,31 +66,48 @@ export async function PATCH(req: NextRequest) {
   // Checking a meal off is a "the user actually did and liked this" signal -
   // fold it into their standing taste profile so future plans (and quick
   // re-logging from the diary) lean on it, without needing to ask again.
-  if (completed) {
-    const alreadyFavorited = await prisma.favoriteMeal.findFirst({
-      where: { userId, foodName: meal.food_name },
-    });
-    if (!alreadyFavorited) {
-      await prisma.favoriteMeal.create({
-        data: {
-          userId,
-          foodName: meal.food_name,
-          items: [{ food_name: meal.food_name }],
-          totalCalories: meal.calories ?? 0,
-          totalProteinG: meal.protein_g ?? 0,
-          totalCarbsG: meal.carbs_g ?? 0,
-          totalFatG: meal.fat_g ?? 0,
+  // Wrapped in a Serializable transaction: FavoriteMeal has no unique
+  // constraint on (userId, foodName), so two near-simultaneous toggles of
+  // the same meal could otherwise both pass the findFirst check before
+  // either create() lands, producing duplicate favorite rows.
+  try {
+    if (completed) {
+      await prisma.$transaction(
+        async (tx) => {
+          const alreadyFavorited = await tx.favoriteMeal.findFirst({
+            where: { userId, foodName: meal.food_name },
+          });
+          if (!alreadyFavorited) {
+            await tx.favoriteMeal.create({
+              data: {
+                userId,
+                foodName: meal.food_name,
+                items: [{ food_name: meal.food_name }],
+                totalCalories: meal.calories ?? 0,
+                totalProteinG: meal.protein_g ?? 0,
+                totalCarbsG: meal.carbs_g ?? 0,
+                totalFatG: meal.fat_g ?? 0,
+              },
+            });
+          }
         },
-      });
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+      );
     }
+
+    const updatedPlan = await prisma.mealPlan.update({
+      where: { id: plan.id },
+      data: { completedMeals: nextCompleted },
+    });
+
+    return NextResponse.json({ plan: updatedPlan });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2034") {
+      return NextResponse.json({ error: "toggleMealError" }, { status: 409 });
+    }
+    console.error("Meal toggle error:", err);
+    return NextResponse.json({ error: "toggleMealError" }, { status: 500 });
   }
-
-  const updatedPlan = await prisma.mealPlan.update({
-    where: { id: plan.id },
-    data: { completedMeals: nextCompleted },
-  });
-
-  return NextResponse.json({ plan: updatedPlan });
 }
 
 export async function POST(req: NextRequest) {
@@ -99,7 +117,7 @@ export async function POST(req: NextRequest) {
   const profile = await prisma.profile.findUnique({ where: { userId } });
   if (!profile?.dailyCalorieTarget || !profile.goal) {
     return NextResponse.json(
-      { error: "أكمل ملفك الشخصي أولاً عشان نحسب خطة مناسبة" },
+      { error: "noProfileError" },
       { status: 400 }
     );
   }
@@ -193,7 +211,7 @@ activityLevel: ${profile.activityLevel}`;
     if (response.stop_reason === "max_tokens") {
       console.error("Meal plan generation truncated at max_tokens");
       return NextResponse.json(
-        { error: "الخطة طويلة كتير وانقطع الرد، جرب تولّد خطة بأيام أقل" },
+        { error: "planTruncatedError" },
         { status: 500 }
       );
     }
@@ -217,6 +235,6 @@ activityLevel: ${profile.activityLevel}`;
     return NextResponse.json({ plan });
   } catch (err) {
     console.error("Meal plan generation error:", err);
-    return NextResponse.json({ error: "صار خطأ بتوليد الخطة، جرب مرة تانية" }, { status: 500 });
+    return NextResponse.json({ error: "planGenError" }, { status: 500 });
   }
 }

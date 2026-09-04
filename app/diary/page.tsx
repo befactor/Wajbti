@@ -61,6 +61,7 @@ export default function DiaryPage() {
   const [favoriteSlot, setFavoriteSlot] = useState<MealSlot>("breakfast");
   const [loggingFavoriteId, setLoggingFavoriteId] = useState<string | null>(null);
   const [justLoggedFavoriteId, setJustLoggedFavoriteId] = useState<string | null>(null);
+  const [favoriteLogError, setFavoriteLogError] = useState("");
   const [notifPermission, setNotifPermission] = useState<NotificationPermission | "unsupported">(
     "default"
   );
@@ -117,6 +118,7 @@ export default function DiaryPage() {
 
   async function logFavorite(fav: FavoriteMeal) {
     setLoggingFavoriteId(fav.id);
+    setFavoriteLogError("");
     try {
       const res = await fetch("/api/meals", {
         method: "POST",
@@ -143,9 +145,11 @@ export default function DiaryPage() {
         setMeals((prev) => [...prev, data.meal]);
         setJustLoggedFavoriteId(fav.id);
         setTimeout(() => setJustLoggedFavoriteId((cur) => (cur === fav.id ? null : cur)), 2000);
+      } else {
+        setFavoriteLogError(td.favoriteLogError);
       }
     } catch {
-      // no-op: user can retry
+      setFavoriteLogError(td.favoriteLogError);
     } finally {
       setLoggingFavoriteId(null);
     }
@@ -418,6 +422,9 @@ export default function DiaryPage() {
                   )}
                 </div>
               ))}
+              {favoriteLogError && (
+                <p className="error-text" style={{ marginTop: 10, textAlign: "center" }}>{favoriteLogError}</p>
+              )}
             </div>
           )}
 

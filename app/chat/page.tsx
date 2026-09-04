@@ -18,6 +18,7 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [chatError, setChatError] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,6 +39,7 @@ export default function ChatPage() {
     if (!text || sending) return;
     setInput("");
     setSending(true);
+    setChatError("");
     setMessages((prev) => [...prev, { id: `tmp-${Date.now()}`, role: "user", content: text }]);
     try {
       const res = await fetch("/api/chat", {
@@ -52,9 +54,13 @@ export default function ChatPage() {
           { id: data.userMessage.id, role: "user", content: data.userMessage.content },
           { id: data.assistantMessage.id, role: "assistant", content: data.assistantMessage.content },
         ]);
+      } else {
+        // Leave the optimistic user bubble in place, but surface the
+        // failure so it doesn't look like the app just dropped the message.
+        setChatError(tc.sendError);
       }
     } catch {
-      // leave the optimistic user message; user can retry
+      setChatError(tc.sendError);
     } finally {
       setSending(false);
     }
@@ -110,6 +116,7 @@ export default function ChatPage() {
           </div>
         ))}
         {sending && <div className="chat-bubble assistant chat-thinking">{tc.thinking}</div>}
+        {chatError && <p className="error-text" style={{ textAlign: "center" }}>{chatError}</p>}
         <div ref={bottomRef} />
       </div>
 
