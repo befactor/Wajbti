@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     heightCm <= 0 ||
     weightKg <= 0
   ) {
-    return NextResponse.json({ error: "البيانات المدخلة غير مكتملة أو غير صحيحة" }, { status: 400 });
+    return NextResponse.json({ error: "invalidDataError" }, { status: 400 });
   }
 
   const bmr = calculateBMR({ sex, weightKg, heightCm, ageYears });

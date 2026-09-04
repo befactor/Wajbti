@@ -136,7 +136,7 @@ export default function ProfilePage() {
       });
       const data = await res.json();
       if (data.error) {
-        setError(data.error);
+        setError(data.error === "invalidDataError" ? tp.invalidDataError : t.auth.genericError);
       } else {
         setForm(data.profile);
         setBmi(data.bmi);
@@ -144,7 +144,7 @@ export default function ProfilePage() {
         setSaved(true);
       }
     } catch {
-      setError(tp.title);
+      setError(t.auth.genericError);
     } finally {
       setLoading(false);
     }
@@ -190,8 +190,6 @@ export default function ProfilePage() {
         <div className="brand-mark" />
         <h1 className="title">{tp.title}</h1>
       </div>
-
-      {error && <p className="error-text">{error}</p>}
 
       <form className="form-card" onSubmit={handleSubmit}>
         <div className="form-field">
@@ -314,6 +312,7 @@ export default function ProfilePage() {
         <button className="analyze-cta" type="submit" disabled={loading}>
           {tp.save}
         </button>
+        {error && <p className="error-text" style={{ marginTop: 10, textAlign: "center" }}>{error}</p>}
         {saved && <p style={{ color: "var(--zaatar)", fontSize: 12.5, marginTop: 10, textAlign: "center" }}>{tp.saved}</p>}
       </form>
 

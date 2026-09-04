@@ -66,6 +66,7 @@ export const dict = {
     },
     profile: {
       title: "ملفي الشخصي",
+      invalidDataError: "البيانات المدخلة غير مكتملة أو غير صحيحة",
       sex: "الجنس",
       male: "ذكر",
       female: "أنثى",
@@ -266,6 +267,7 @@ export const dict = {
     },
     profile: {
       title: "My Profile",
+      invalidDataError: "The entered data is incomplete or invalid",
       sex: "Sex",
       male: "Male",
       female: "Female",
