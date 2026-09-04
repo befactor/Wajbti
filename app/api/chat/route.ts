@@ -8,6 +8,11 @@ import { dateStrToUTCMidnight, localDateStr } from "@/lib/date";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+// See the same note in api/analyze/route.ts - text-only replies are
+// usually fast, but a long conversation history can still push this past
+// Vercel's default 10s Hobby timeout.
+export const maxDuration = 60;
+
 const HISTORY_LIMIT = 20;
 
 async function requireUserId() {

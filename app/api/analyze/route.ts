@@ -10,6 +10,12 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+// Vercel's default serverless timeout (10s on Hobby) is too short for a
+// vision + long-output Claude call - a detailed food photo can easily take
+// 15-30s to analyze. Without this, the function gets killed mid-request and
+// the client just sees a generic failure with no indication it was a timeout.
+export const maxDuration = 60;
+
 // POST body: { description?: string, imageBase64?: string, mediaType?: string, voiceNote?: string, diningMode?: boolean, clarificationHistory?: {question: string, answer: string}[], userId?: string }
 export async function POST(req: NextRequest) {
   try {

@@ -8,6 +8,10 @@ import { localDateStr, dateStrToUTCMidnight } from "@/lib/date";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+// A 7-day plan (max_tokens: 8000) can take well past Vercel's default 10s
+// Hobby timeout to generate - see the same note in api/analyze/route.ts.
+export const maxDuration = 60;
+
 async function requireUserId() {
   const session = await getServerSession(authOptions);
   return (session?.user as { id?: string } | undefined)?.id ?? null;
