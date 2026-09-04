@@ -3,7 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { NUTRITIONIST_CHAT_SYSTEM_PROMPT } from "@/lib/systemPrompt";
+import { NUTRITIONIST_CHAT_SYSTEM_PROMPT, CHAT_ENGLISH_INSTRUCTION } from "@/lib/systemPrompt";
 import { dateStrToUTCMidnight, localDateStr } from "@/lib/date";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -88,6 +88,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}));
   const message = (body.message || "").trim();
+  const lang = body.lang;
   if (!message) return NextResponse.json({ error: "الرسالة فاضية" }, { status: 400 });
 
   try {
@@ -114,6 +115,7 @@ export async function POST(req: NextRequest) {
       system: [
         { type: "text", text: NUTRITIONIST_CHAT_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
         { type: "text", text: `user_context:\n${userContext}` },
+        ...(lang === "en" ? [{ type: "text" as const, text: CHAT_ENGLISH_INSTRUCTION }] : []),
       ],
       messages: [
         ...orderedHistory.map((m) => ({

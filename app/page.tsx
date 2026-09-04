@@ -189,6 +189,7 @@ export default function Home() {
           mediaType: imageBase64 ? imageMediaType : undefined,
           diningMode,
           clarificationHistory: history.length > 0 ? history : undefined,
+          lang,
         }),
       });
       const data = await res.json();

@@ -3,7 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { MEAL_PLAN_SYSTEM_PROMPT } from "@/lib/systemPrompt";
+import { MEAL_PLAN_SYSTEM_PROMPT, MEAL_PLAN_ENGLISH_INSTRUCTION } from "@/lib/systemPrompt";
 import { localDateStr, dateStrToUTCMidnight } from "@/lib/date";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -104,6 +104,7 @@ export async function POST(req: NextRequest) {
   const days = Math.min(Math.max(Number(body.days) || 7, 1), 7);
   const force = Boolean(body.force);
   const preferences = typeof body.preferences === "string" ? body.preferences.trim().slice(0, 300) : "";
+  const lang = body.lang;
 
   // The plan is meant to stay fixed for a week - re-generating it on every
   // click burns a full (expensive) API call for a near-identical result.
@@ -175,7 +176,13 @@ activityLevel: ${profile.activityLevel}`;
       // response and breaks JSON.parse below.
       max_tokens: 8000,
       // Cached: same prompt for every plan generation regardless of user.
-      system: [{ type: "text", text: MEAL_PLAN_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+      system:
+        lang === "en"
+          ? [
+              { type: "text", text: MEAL_PLAN_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
+              { type: "text", text: MEAL_PLAN_ENGLISH_INSTRUCTION },
+            ]
+          : [{ type: "text", text: MEAL_PLAN_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: userPrompt }],
     });
 

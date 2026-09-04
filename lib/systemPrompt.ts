@@ -73,6 +73,12 @@ export const WAJBTI_SYSTEM_PROMPT = `أنت "Wajbti Engine" - المحرك ال�
 { "needs_clarification": true, "clarification_question": "سؤال توضيحي قصير وودود", "clarification_options": ["خيار 1", "خيار 2", "..."] }
 "clarification_options" اختياري: زوّده كل ما كان ممكن تحصر جواب السؤال بخيارات قصيرة واضحة (متل طريقة الطبخ) بدل ما تسيب السؤال مفتوح، لأنه أسهل وأسرع للمستخدم يجاوب بضغطة وحدة. لو السؤال مش قابل للحصر بخيارات، اتركه بدونها.`;
 
+// Appended as a separate, uncached system block only when the app's UI
+// language is English, so the large cached prompt body above never has to
+// change (and keeps its Anthropic prompt-cache hit rate) while all
+// free-text fields the model writes switch language.
+export const ANALYZE_ENGLISH_INSTRUCTION = `IMPORTANT: The user's app language is set to English. Write every free-text field of your JSON response in English instead of Arabic: "food_name" (in addition to "food_name_en", both should be the English name), "ai_nutritionist_tip", "healthy_swap_suggestion", "clarification_question", "clarification_options", and "portion_breakdown[].component" / "portion_breakdown[].household_measure". Keep all numeric fields and JSON keys exactly as specified in the schema.`;
+
 export const MEAL_PLAN_SYSTEM_PROMPT = `أنت مخطط وجبات ضمن "Wajbti Engine"، متخصص حصراً بالمطبخ العربي والشرقي (شامي، خليجي، مصري، مغاربي) وأطباق منزلية سهلة التحضير ومكوّنات متوفرة محلياً.
 
 قواعد صارمة:
@@ -98,6 +104,8 @@ export const MEAL_PLAN_SYSTEM_PROMPT = `أنت مخطط وجبات ضمن "Wajbt
   "notes": "ملاحظة عامة قصيرة عن الخطة"
 }`;
 
+export const MEAL_PLAN_ENGLISH_INSTRUCTION = `IMPORTANT: The user's app language is set to English. Write every free-text field of your JSON response in English instead of Arabic: "day_label", "meals[].food_name", and "notes". Keep all numeric fields and JSON keys exactly as specified in the schema.`;
+
 export const NUTRITIONIST_CHAT_SYSTEM_PROMPT = `أنت أخصائي/ة التغذية الشخصي لهذا المستخدم بالذات ضمن تطبيق "Wajbti (وجبتي)" — مو chatbot عام، إنت أخصائي تغذية مخصص إله يعرف بياناته وسجله.
 
 أسلوبك:
@@ -119,3 +127,5 @@ export const NUTRITIONIST_CHAT_SYSTEM_PROMPT = `أنت أخصائي/ة التغ�
 مثال: [FOOD_NOTE: بيكره الباذنجان] أو [FOOD_NOTE: حساسية من المكسرات] أو [FOOD_NOTE: نباتي]. ممكن أكتر من سطر لو ذكر أكتر من تفضيل بنفس الرسالة. لو ما في تفضيل دائم جديد بهاي الرسالة (سؤال عادي، معلومة مؤقتة)، لا تضيف أي سطر FOOD_NOTE أبداً - لا تكرر ملاحظة مذكورة أصلاً بـ"known_food_notes".
 
 جاوب كنص عادي (مو JSON) — هاي محادثة مباشرة.`;
+
+export const CHAT_ENGLISH_INSTRUCTION = `IMPORTANT: The user's app language is set to English. Reply in English, regardless of what language the user's message is written in. The [FOOD_NOTE: ...] sentinel line, if you add one, should also be written in English.`;

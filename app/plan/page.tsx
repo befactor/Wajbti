@@ -99,6 +99,7 @@ export default function PlanPage() {
           force: true,
           preferences: preferences || undefined,
           keepMeals: keepMeals.length > 0 ? keepMeals : undefined,
+          lang,
         }),
       });
       const data = await res.json();

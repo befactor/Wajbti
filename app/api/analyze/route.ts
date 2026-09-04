@@ -3,7 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { WAJBTI_SYSTEM_PROMPT } from "@/lib/systemPrompt";
+import { WAJBTI_SYSTEM_PROMPT, ANALYZE_ENGLISH_INSTRUCTION } from "@/lib/systemPrompt";
 import { findSimilarCorrections } from "@/lib/corrections";
 
 const anthropic = new Anthropic({
@@ -14,7 +14,7 @@ const anthropic = new Anthropic({
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { description, imageBase64, mediaType, voiceNote, diningMode, clarificationHistory, userId } = body;
+    const { description, imageBase64, mediaType, voiceNote, diningMode, clarificationHistory, userId, lang } = body;
 
     if (!description && !imageBase64) {
       return NextResponse.json(
@@ -103,7 +103,13 @@ export async function POST(req: NextRequest) {
       // Cached: identical for every analyze call across every user, so this
       // stops being billed at full price after the first request in the
       // cache window (huge win given this is the highest-volume route).
-      system: [{ type: "text", text: WAJBTI_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+      system:
+        lang === "en"
+          ? [
+              { type: "text", text: WAJBTI_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
+              { type: "text", text: ANALYZE_ENGLISH_INSTRUCTION },
+            ]
+          : [{ type: "text", text: WAJBTI_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: contentBlocks }],
     });
 
