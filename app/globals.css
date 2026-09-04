@@ -176,7 +176,9 @@ h1.title { font-family: "El Messiri", sans-serif; font-size: 26px; font-weight: 
   background: rgba(43,33,27,0.75); color: #fff; border: none; font-size: 15px; cursor: pointer;
 }
 .capture-btn { cursor: pointer; }
-.chat-container { display: flex; flex-direction: column; min-height: 100vh; }
+/* Extra bottom clearance (beyond .container's own tabs-bar clearance) so
+   the message thread never renders underneath the fixed chat-footer below. */
+.chat-container { display: flex; flex-direction: column; min-height: 100vh; padding-bottom: calc(90px + 100px + env(safe-area-inset-bottom)); }
 .chat-thread { flex: 1; display: flex; flex-direction: column; gap: 10px; margin: 10px 0; }
 .chat-bubble {
   max-width: 82%; padding: 12px 14px; border-radius: 18px; font-size: 13.5px; line-height: 1.8;
@@ -185,8 +187,15 @@ h1.title { font-family: "El Messiri", sans-serif; font-size: 26px; font-weight: 
 .chat-bubble.assistant { align-self: flex-start; background: var(--card); border: 1px solid var(--line); border-start-start-radius: 4px; }
 .chat-bubble.user { align-self: flex-end; background: var(--tanoor); color: var(--semolina); border-start-end-radius: 4px; }
 .chat-thinking { opacity: 0.6; font-style: italic; }
-.chat-disclaimer { font-size: 10.5px; color: var(--taupe); text-align: center; margin: 6px 0 12px; line-height: 1.6; }
-.chat-input-row { display: flex; gap: 8px; margin-bottom: 10px; }
+/* Pinned right above the fixed tabs-bar (90px + safe-area, same value the
+   tabs-bar itself uses) so the input stays reachable no matter how long the
+   conversation gets, instead of scrolling away with the message thread. */
+.chat-footer {
+  position: fixed; bottom: calc(90px + env(safe-area-inset-bottom)); inset-inline: 0;
+  background: var(--semolina); padding: 10px 20px 6px; z-index: 15;
+}
+.chat-disclaimer { font-size: 10.5px; color: var(--taupe); text-align: center; margin: 0 0 8px; line-height: 1.5; }
+.chat-input-row { display: flex; gap: 8px; }
 .chat-input-row input {
   flex: 1; background: var(--card); border: 1px solid var(--line); border-radius: 20px;
   padding: 12px 16px; font-family: "Cairo"; font-size: 16px; outline: none;

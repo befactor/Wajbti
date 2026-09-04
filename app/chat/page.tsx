@@ -113,19 +113,20 @@ export default function ChatPage() {
         <div ref={bottomRef} />
       </div>
 
-      <p className="chat-disclaimer">{tc.disclaimer}</p>
-
-      <div className="chat-input-row">
-        <input
-          type="text"
-          placeholder={tc.placeholder}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-        />
-        <button onClick={sendMessage} disabled={sending || !input.trim()}>
-          {tc.send}
-        </button>
+      <div className="chat-footer">
+        <p className="chat-disclaimer">{tc.disclaimer}</p>
+        <div className="chat-input-row">
+          <input
+            type="text"
+            placeholder={tc.placeholder}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+          />
+          <button onClick={sendMessage} disabled={sending || !input.trim()}>
+            {tc.send}
+          </button>
+        </div>
       </div>
 
       <TabsBar lang={lang} />
