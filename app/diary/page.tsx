@@ -354,10 +354,11 @@ export default function DiaryPage() {
           )}
 
           {stepsToday != null && (
-            <p style={{ textAlign: "center", fontSize: 11.5, color: "var(--taupe)", marginBottom: 20 }}>
-              🚶 {td.stepsToday}: {stepsToday.toLocaleString()}
-              {caloriesBurned > 0 && <> · 🔥 {td.activityBurned}: {caloriesBurned} kcal</>}
-            </p>
+            <div className="steps-badge">
+              <span>🚶 {td.stepsToday}</span>
+              <span className="steps-count">{stepsToday.toLocaleString()}</span>
+              {caloriesBurned > 0 && <span>🔥 {td.activityBurned}: {caloriesBurned} kcal</span>}
+            </div>
           )}
 
           {adaptiveTip !== "none" && (
