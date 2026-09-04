@@ -15,7 +15,7 @@ body {
   font-family: "Cairo", sans-serif;
   color: var(--tanoor);
 }
-.container { max-width: 480px; margin: 0 auto; padding: calc(24px + env(safe-area-inset-top)) 20px calc(90px + env(safe-area-inset-bottom)); min-height: 100vh; }
+.container { max-width: 480px; margin: 0 auto; padding: calc(24px + env(safe-area-inset-top)) 20px calc(140px + env(safe-area-inset-bottom)); min-height: 100vh; }
 .status-bar-spacer {
   position: fixed; top: 0; inset-inline: 0; height: env(safe-area-inset-top);
   background: var(--semolina); z-index: 30;
@@ -178,7 +178,7 @@ h1.title { font-family: "El Messiri", sans-serif; font-size: 26px; font-weight: 
 .capture-btn { cursor: pointer; }
 /* Extra bottom clearance (beyond .container's own tabs-bar clearance) so
    the message thread never renders underneath the fixed chat-footer below. */
-.chat-container { display: flex; flex-direction: column; min-height: 100vh; padding-bottom: calc(90px + 100px + env(safe-area-inset-bottom)); }
+.chat-container { display: flex; flex-direction: column; min-height: 100vh; padding-bottom: calc(140px + 100px + env(safe-area-inset-bottom)); }
 .chat-thread { flex: 1; display: flex; flex-direction: column; gap: 10px; margin: 10px 0; }
 .chat-bubble {
   max-width: 82%; padding: 12px 14px; border-radius: 18px; font-size: 13.5px; line-height: 1.8;
@@ -187,11 +187,12 @@ h1.title { font-family: "El Messiri", sans-serif; font-size: 26px; font-weight: 
 .chat-bubble.assistant { align-self: flex-start; background: var(--card); border: 1px solid var(--line); border-start-start-radius: 4px; }
 .chat-bubble.user { align-self: flex-end; background: var(--tanoor); color: var(--semolina); border-start-end-radius: 4px; }
 .chat-thinking { opacity: 0.6; font-style: italic; }
-/* Pinned right above the fixed tabs-bar (90px + safe-area, same value the
-   tabs-bar itself uses) so the input stays reachable no matter how long the
-   conversation gets, instead of scrolling away with the message thread. */
+/* Pinned right above the fixed tabs-bar (140px + safe-area, same value
+   .container uses for its own tabs-bar clearance) so the input stays
+   reachable no matter how long the conversation gets, instead of scrolling
+   away with the message thread. */
 .chat-footer {
-  position: fixed; bottom: calc(90px + env(safe-area-inset-bottom)); inset-inline: 0;
+  position: fixed; bottom: calc(140px + env(safe-area-inset-bottom)); inset-inline: 0;
   background: var(--semolina); padding: 10px 20px 6px; z-index: 15;
 }
 .chat-disclaimer { font-size: 10.5px; color: var(--taupe); text-align: center; margin: 0 0 8px; line-height: 1.5; }
