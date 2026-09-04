@@ -61,6 +61,8 @@ export const dict = {
       signOut: "تسجيل خروج",
       genericError: "حدث خطأ، تأكد من البيانات وحاول مرة أخرى",
       invalidCredentials: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+      weakPasswordError: "لازم بريد إلكتروني وكلمة سر لا تقل عن 8 محارف",
+      emailTakenError: "هذا البريد الإلكتروني مسجّل مسبقاً",
     },
     profile: {
       title: "ملفي الشخصي",
@@ -259,6 +261,8 @@ export const dict = {
       signOut: "Sign out",
       genericError: "Something went wrong, check your details and try again",
       invalidCredentials: "Invalid email or password",
+      weakPasswordError: "You need an email and a password of at least 8 characters",
+      emailTakenError: "This email is already registered",
     },
     profile: {
       title: "My Profile",

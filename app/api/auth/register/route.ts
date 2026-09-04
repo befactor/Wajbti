@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
 
     if (!email || !password || password.length < 8) {
       return NextResponse.json(
-        { error: "لازم بريد إلكتروني وكلمة سر لا تقل عن 8 محارف" },
+        { error: "weakPasswordError" },
         { status: 400 }
       );
     }
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
       return NextResponse.json(
-        { error: "هذا البريد الإلكتروني مسجّل مسبقاً" },
+        { error: "emailTakenError" },
         { status: 409 }
       );
     }
@@ -29,6 +29,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, userId: user.id });
   } catch (err) {
     console.error("Register error:", err);
-    return NextResponse.json({ error: "صار خطأ بإنشاء الحساب" }, { status: 500 });
+    return NextResponse.json({ error: "genericError" }, { status: 500 });
   }
 }

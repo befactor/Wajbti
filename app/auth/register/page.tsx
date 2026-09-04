@@ -30,7 +30,13 @@ export default function RegisterPage() {
       });
       const data = await res.json();
       if (data.error) {
-        setError(data.error);
+        setError(
+          data.error === "weakPasswordError"
+            ? ta.weakPasswordError
+            : data.error === "emailTakenError"
+            ? ta.emailTakenError
+            : ta.genericError
+        );
         setLoading(false);
         return;
       }
