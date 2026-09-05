@@ -71,6 +71,7 @@ export const dict = {
     profile: {
       title: "ملفي الشخصي",
       invalidDataError: "البيانات المدخلة غير مكتملة أو غير صحيحة",
+      sourcesTitle: "المصادر العلمية للحسابات",
       sex: "الجنس",
       male: "ذكر",
       female: "أنثى",
@@ -151,6 +152,7 @@ export const dict = {
       favoriteLogged: "✓ تم تسجيلها في اليوميات",
       favoriteLogError: "تعذّر تسجيل الوجبة، جرّب مرة تانية",
       stepsToday: "خطوات اليوم",
+      stepsSource: "عبر Apple Health",
       activityBurned: "المحروق من النشاط",
     },
     plan: {
@@ -283,6 +285,7 @@ export const dict = {
     profile: {
       title: "My Profile",
       invalidDataError: "The entered data is incomplete or invalid",
+      sourcesTitle: "Scientific sources for these calculations",
       sex: "Sex",
       male: "Male",
       female: "Female",
@@ -363,6 +366,7 @@ export const dict = {
       favoriteLogged: "✓ Added to your diary",
       favoriteLogError: "Couldn't log this meal, please try again",
       stepsToday: "Steps today",
+      stepsSource: "via Apple Health",
       activityBurned: "Burned from activity",
     },
     plan: {

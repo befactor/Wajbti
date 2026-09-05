@@ -25,6 +25,37 @@ const ACTIVITY_OPTIONS = ["sedentary", "light", "moderate", "active", "very_acti
 const GOAL_OPTIONS = ["lose", "maintain", "gain"] as const;
 const PREGNANCY_OPTIONS = ["none", "pregnant", "breastfeeding"] as const;
 
+// Apple Guideline 1.4.1 requires citations for any medical/health
+// calculations and recommendations shown to the user - these are the
+// actual formulas implemented in lib/nutrition.ts, cited to their source.
+const SOURCES: { ar: string; en: string; url: string }[] = [
+  {
+    ar: "معادلة السعرات الأساسية (BMR) - معادلة Mifflin-St Jeor",
+    en: "Resting calorie estimate (BMR) - Mifflin-St Jeor equation",
+    url: "https://pubmed.ncbi.nlm.nih.gov/2305711/",
+  },
+  {
+    ar: "إجمالي الطاقة اليومية (TDEE) - معاملات النشاط البدني",
+    en: "Total daily energy (TDEE) - physical activity multipliers",
+    url: "https://www.dietaryguidelines.gov/",
+  },
+  {
+    ar: "تصنيف مؤشر كتلة الجسم (BMI)",
+    en: "Body Mass Index (BMI) classification",
+    url: "https://www.cdc.gov/healthyweight/assessing/bmi/adult_bmi/index.html",
+  },
+  {
+    ar: "هدف السعرات لنزول/زيادة الوزن (نطاق آمن)",
+    en: "Weight loss/gain calorie target (safe range)",
+    url: "https://www.cdc.gov/healthyweight/losing_weight/index.html",
+  },
+  {
+    ar: "هدف شرب الماء اليومي",
+    en: "Daily water intake target",
+    url: "https://www.mayoclinic.org/healthy-lifestyle/nutrition-and-healthy-eating/in-depth/water/art-20044256",
+  },
+];
+
 export default function ProfilePage() {
   const [lang, setLang] = useLang();
   const t = dict[lang];
@@ -346,6 +377,20 @@ export default function ProfilePage() {
               </p>
             )}
           </div>
+
+          <h4 style={{ fontSize: 12.5, fontWeight: 700, marginTop: 16, marginBottom: 8, color: "var(--taupe)" }}>
+            📚 {tp.sourcesTitle}
+          </h4>
+          <ul style={{ margin: 0, paddingInlineStart: 18, fontSize: 11.5, color: "var(--taupe)", lineHeight: 1.9 }}>
+            {SOURCES.map((s) => (
+              <li key={s.url}>
+                {s[lang]}:{" "}
+                <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--saffron-deep)" }}>
+                  {s.url.replace(/^https?:\/\//, "")}
+                </a>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

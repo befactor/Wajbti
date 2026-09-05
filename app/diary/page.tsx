@@ -362,6 +362,7 @@ export default function DiaryPage() {
               <span>🚶 {td.stepsToday}</span>
               <span className="steps-count">{stepsToday.toLocaleString()}</span>
               {caloriesBurned > 0 && <span>🔥 {td.activityBurned}: {caloriesBurned} kcal</span>}
+              <span className="steps-source">🍏 {td.stepsSource}</span>
             </div>
           )}
 
