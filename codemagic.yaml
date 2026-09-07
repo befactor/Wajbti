@@ -36,6 +36,7 @@ workflows:
             const cfg = JSON.parse(fs.readFileSync(path, 'utf-8'));
             const list = new Set(cfg.packageClassList || []);
             list.add('StepsPlugin');
+            list.add('AppleSignInPlugin');
             cfg.packageClassList = Array.from(list);
             fs.writeFileSync(path, JSON.stringify(cfg, null, '\t'));
           "

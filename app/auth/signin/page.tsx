@@ -4,7 +4,9 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Capacitor } from "@capacitor/core";
 import { dict, useLang } from "@/lib/i18n";
+import AppleSignInNative from "@/lib/capacitor/appleSignIn";
 
 export default function SignInPage() {
   const [lang, setLang] = useLang();
@@ -38,6 +40,37 @@ export default function SignInPage() {
     }
   }
 
+  // The web OAuth redirect (signIn("apple", ...)) fails inside the app's
+  // embedded WKWebView - Apple's identity servers reject completing sign-in
+  // in an untrusted embedded browser context (this is what App Review hit).
+  // On native, use Apple's own AuthenticationServices framework instead (no
+  // webview, no redirect) via AppleSignInPlugin.swift, then hand the signed
+  // identityToken to the "apple-native" credentials provider for
+  // verification. On plain web, the OAuth flow still works fine (real
+  // browser), so keep using it there.
+  async function handleAppleSignIn() {
+    if (!Capacitor.isNativePlatform()) {
+      signIn("apple", { callbackUrl: "/" });
+      return;
+    }
+    setError("");
+    setLoading(true);
+    try {
+      const result = await AppleSignInNative.signIn();
+      const res = await signIn("apple-native", { redirect: false, identityToken: result.identityToken });
+      if (res?.error) {
+        setError(ta.invalidCredentials);
+        return;
+      }
+      router.push("/");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (message !== "cancelled") setError(ta.genericError);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div dir={t.dir} className="container">
       <button className="lang-toggle" onClick={() => setLang(lang === "ar" ? "en" : "ar")}>
@@ -65,8 +98,8 @@ export default function SignInPage() {
         <button
           type="button"
           className={`btn-google ${appleEnabled ? "" : "btn-disabled"}`}
-          disabled={!appleEnabled}
-          onClick={() => signIn("apple", { callbackUrl: "/" })}
+          disabled={!appleEnabled || loading}
+          onClick={handleAppleSignIn}
         >
           🍎 {ta.signInWithApple}
         </button>
