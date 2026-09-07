@@ -97,11 +97,14 @@ export default function SignInPage() {
         </button>
         <button
           type="button"
-          className={`btn-google ${appleEnabled ? "" : "btn-disabled"}`}
+          className={`btn-apple ${appleEnabled ? "" : "btn-disabled"}`}
           disabled={!appleEnabled || loading}
           onClick={handleAppleSignIn}
         >
-          🍎 {ta.signInWithApple}
+          <span className="apple-logo-glyph" aria-hidden="true">
+            {""}
+          </span>
+          {ta.signInWithApple}
         </button>
 
         <div className="divider">{ta.or}</div>

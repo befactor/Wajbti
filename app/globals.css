@@ -124,6 +124,13 @@ h1.title { font-family: "El Messiri", sans-serif; font-size: 26px; font-weight: 
   display: flex; align-items: center; justify-content: center; gap: 8px;
 }
 .btn-disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-apple {
+  width: 100%; background: #000; color: #fff; border: none; border-radius: 18px;
+  padding: 14px; font-family: -apple-system, BlinkMacSystemFont, "Cairo", sans-serif; font-weight: 500;
+  font-size: 15px; cursor: pointer; margin-bottom: 10px; min-height: 44px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-apple .apple-logo-glyph { font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 18px; line-height: 1; }
 .divider { display: flex; align-items: center; gap: 10px; color: var(--taupe); font-size: 12px; margin: 16px 0; }
 .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .auth-switch { text-align: center; font-size: 13px; color: var(--taupe); margin-top: 14px; }
