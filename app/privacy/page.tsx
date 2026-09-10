@@ -22,9 +22,14 @@ const content: Record<Lang, { title: string; updated: string; sections: { h: str
         ],
       },
       {
-        h: "كيفية التعامل مع صور الوجبات",
+        h: "مشاركة بياناتك مع مزوّد الذكاء الاصطناعي (Anthropic)",
         p: [
-          "عند تصوير وجبة، تُرسل الصورة مباشرة إلى خدمة الذكاء الاصطناعي (Anthropic Claude) للتحليل فقط، ولا نقوم بتخزينها في خوادمنا بعد ذلك — تُحفظ فقط نتيجة التحليل النصية (السعرات والماكروز) في حال إضافتها إلى يومياتك.",
+          "تطبيقنا مبني حول الذكاء الاصطناعي من شركة Anthropic (نموذج Claude). قبل أول استخدام لأي ميزة ذكاء اصطناعي، يعرض التطبيق شاشة توضح هذا صراحةً ويطلب موافقتك قبل إرسال أي بيانات.",
+          "ميزة تحليل الوجبة: تُرسل صورة/وصف نصي/ملاحظة صوتية للوجبة إلى Anthropic للتحليل فقط، ولا نقوم بتخزين الصورة نفسها بعدها في خوادمنا — تُحفظ فقط نتيجة التحليل النصية (السعرات والماكروز) في حال إضافتها إلى يومياتك.",
+          "ميزة محادثة أخصائي التغذية: تُرسل رسائلك ورسائل المحادثة السابقة إلى Anthropic لتوليد الرد.",
+          "ميزة خطة الطعام الأسبوعية: تُرسل أهداف السعرات وأكلاتك المفضلة وملاحظات الأكل يلي سجّلتها إلى Anthropic لبناء خطة مناسبة.",
+          "بكل الحالات أعلاه، قد تُرسل أيضاً بيانات ملفك الشخصي ذات الصلة (العمر، الهدف، حالة الحمل/الرضاعة) عندما تكون ضرورية لتقديم نصيحة آمنة ومناسبة لحالتك.",
+          "بموجب اتفاقيتنا التجارية مع Anthropic، لا تُستخدم بياناتك لتدريب نماذجهم ولا تُباع أو تُشارك لأغراض تسويقية، وتخضع لمعايير حماية بيانات مكافئة لمعاييرنا.",
         ],
       },
       {
@@ -70,9 +75,14 @@ const content: Record<Lang, { title: string; updated: string; sections: { h: str
         ],
       },
       {
-        h: "How we handle meal photos",
+        h: "Sharing data with our AI provider (Anthropic)",
         p: [
-          "When you photograph a meal, the photo is sent directly to our AI provider (Anthropic Claude) for analysis only, and is not stored on our servers afterward - only the resulting text analysis (calories, macros) is saved if you add it to your diary.",
+          "The app is built around AI from Anthropic (the Claude model). Before you use any AI feature for the first time, the app shows a screen that discloses this explicitly and asks for your consent before any data is sent.",
+          "Meal analysis: the photo/text description/voice note of the meal is sent to Anthropic for analysis only, and the photo itself is not stored on our servers afterward - only the resulting text analysis (calories, macros) is saved if you add it to your diary.",
+          "Nutritionist chat: your messages and prior chat history are sent to Anthropic to generate a reply.",
+          "Weekly meal plan: your calorie target, favorite meals, and any food notes you've logged are sent to Anthropic to build a suitable plan.",
+          "In all of the above, relevant profile details (age, goal, pregnancy/breastfeeding status) may also be sent when needed to give safe, personalized advice.",
+          "Under our commercial agreement with Anthropic, your data is not used to train their models, is not sold or shared for marketing purposes, and is held to data protection standards equivalent to our own.",
         ],
       },
       {
