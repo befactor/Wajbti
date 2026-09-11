@@ -3,12 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
-import { Capacitor } from "@capacitor/core";
 import { dict, useLang } from "@/lib/i18n";
 import TabsBar from "@/app/components/TabsBar";
 import { addDays, localDateStr } from "@/lib/date";
-import { getAdaptiveDiaryTip, estimateCaloriesBurnedFromSteps } from "@/lib/nutrition";
-import Steps from "@/lib/capacitor/steps";
+import { getAdaptiveDiaryTip } from "@/lib/nutrition";
 
 type MealSlot = "breakfast" | "lunch" | "dinner" | "snack" | "suhoor" | "iftar";
 
@@ -51,8 +49,6 @@ export default function DiaryPage() {
   const [dateStr, setDateStr] = useState(() => localDateStr());
   const [meals, setMeals] = useState<MealEntry[]>([]);
   const [calorieTarget, setCalorieTarget] = useState<number | null>(null);
-  const [weightKg, setWeightKg] = useState<number | null>(null);
-  const [stepsToday, setStepsToday] = useState<number | null>(null);
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
   const [ramadanMode, setRamadanMode] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -90,22 +86,11 @@ export default function DiaryPage() {
         setMeals(mealsData.meals || []);
         setHasProfile(!!profileData.profile);
         setCalorieTarget(profileData.profile?.dailyCalorieTarget ?? null);
-        setWeightKg(profileData.profile?.weightKg ?? null);
         const isRamadan = !!profileData.profile?.ramadanMode;
         setRamadanMode(isRamadan);
         setFavoriteSlot(isRamadan ? "suhoor" : "breakfast");
       })
       .finally(() => setLoading(false));
-  }, [status, dateStr]);
-
-  useEffect(() => {
-    if (status !== "authenticated" || !Capacitor.isNativePlatform() || dateStr !== localDateStr()) {
-      setStepsToday(null);
-      return;
-    }
-    Steps.getTodaySteps()
-      .then((data) => setStepsToday(Math.round(data.steps)))
-      .catch(() => setStepsToday(null));
   }, [status, dateStr]);
 
   useEffect(() => {
@@ -216,10 +201,7 @@ export default function DiaryPage() {
     [meals]
   );
 
-  const caloriesBurned =
-    stepsToday != null && weightKg != null ? estimateCaloriesBurnedFromSteps(stepsToday, weightKg) : 0;
-  const remaining =
-    calorieTarget != null ? Math.round(calorieTarget - totals.calories + caloriesBurned) : null;
+  const remaining = calorieTarget != null ? Math.round(calorieTarget - totals.calories) : null;
   const adaptiveTip =
     calorieTarget != null && meals.length > 0
       ? getAdaptiveDiaryTip(totals.calories, calorieTarget)
@@ -352,18 +334,9 @@ export default function DiaryPage() {
           </div>
 
           {calorieTarget != null && (
-            <p style={{ textAlign: "center", fontSize: 11.5, color: "var(--taupe)", marginBottom: stepsToday != null ? 6 : 20 }}>
+            <p style={{ textAlign: "center", fontSize: 11.5, color: "var(--taupe)", marginBottom: 20 }}>
               {td.consumed}: {Math.round(totals.calories)} / {td.goal}: {Math.round(calorieTarget)} kcal
             </p>
-          )}
-
-          {stepsToday != null && (
-            <div className="steps-badge">
-              <span>🚶 {td.stepsToday}</span>
-              <span className="steps-count">{stepsToday.toLocaleString()}</span>
-              {caloriesBurned > 0 && <span>🔥 {td.activityBurned}: {caloriesBurned} kcal</span>}
-              <span className="steps-source">🍏 {td.stepsSource}</span>
-            </div>
           )}
 
           {adaptiveTip !== "none" && (

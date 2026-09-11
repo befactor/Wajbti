@@ -162,9 +162,6 @@ export const dict = {
       logFavorite: "سجّل الآن",
       favoriteLogged: "✓ تم تسجيلها في اليوميات",
       favoriteLogError: "تعذّر تسجيل الوجبة، جرّب مرة تانية",
-      stepsToday: "خطوات اليوم",
-      stepsSource: "عبر Apple Health",
-      activityBurned: "المحروق من النشاط",
     },
     plan: {
       title: "خطة الطعام الذكية",
@@ -387,9 +384,6 @@ export const dict = {
       logFavorite: "Log now",
       favoriteLogged: "✓ Added to your diary",
       favoriteLogError: "Couldn't log this meal, please try again",
-      stepsToday: "Steps today",
-      stepsSource: "via Apple Health",
-      activityBurned: "Burned from activity",
     },
     plan: {
       title: "Smart Meal Plan",
