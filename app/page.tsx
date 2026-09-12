@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
-import Link from "next/link";
 import { dict, useLang } from "@/lib/i18n";
 import { localDateStr } from "@/lib/date";
 import TabsBar from "@/app/components/TabsBar";
+import WelcomeCarousel from "@/app/components/WelcomeCarousel";
 
 type PortionComponent = {
   component: string;
@@ -201,6 +201,8 @@ export default function Home() {
             ? t.missingInputError
             : data.error === "analyzeError"
             ? t.analyzeError
+            : data.error === "unauthorizedError"
+            ? t.unauthorizedError
             : t.auth.genericError
         );
       } else {
@@ -315,20 +317,20 @@ export default function Home() {
     }
   }
 
+  if (status === "loading") {
+    return <div style={{ minHeight: "100vh", background: "var(--tanoor)" }} />;
+  }
+
+  if (status === "unauthenticated") {
+    return <WelcomeCarousel lang={lang} />;
+  }
+
   return (
     <div dir={t.dir} className="container">
       <div className="top-nav">
         <div className="top-nav-auth">
-          {status === "authenticated" ? (
-            <>
-              <span>{session.user?.name || session.user?.email}</span>
-              <button onClick={() => signOut({ callbackUrl: "/" })}>{t.auth.signOut}</button>
-            </>
-          ) : status === "unauthenticated" ? (
-            <Link href="/auth/signin">{t.auth.signInCta}</Link>
-          ) : (
-            <span />
-          )}
+          <span>{session?.user?.name || session?.user?.email}</span>
+          <button onClick={() => signOut({ callbackUrl: "/" })}>{t.auth.signOut}</button>
         </div>
         <button className="lang-toggle-inline" onClick={() => setLang(lang === "ar" ? "en" : "ar")}>
           {lang === "ar" ? "English" : "العربية"}

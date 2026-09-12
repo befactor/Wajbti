@@ -29,27 +29,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Meal analysis calls the Claude API per request (real cost) and is only
+    // ever reachable from the app's post-login screens now - require a
+    // session so the endpoint can't be used anonymously even if called directly.
+    const session = await getServerSession(authOptions).catch(() => null);
+    const sessionUserId = (session?.user as { id?: string } | undefined)?.id;
+    if (!sessionUserId) {
+      return NextResponse.json({ error: "unauthorizedError" }, { status: 401 });
+    }
+
     // 1) خطوة الاسترجاع: نفحص إذا في تصحيحات سابقة شبيهة (RAG بسيط عبر بحث نصي)
     const retrievedCorrections = await findSimilarCorrections({
       description: description || "",
     });
 
-    // 1b) لو المستخدم مسجل دخول، نجيب حالة حمل/رضاعة وأي تفضيلات/حساسيات
-    // أكل سبق وذكرها بالشات عشان النصيحة والتحذيرات الغذائية تراعيها.
+    // 1b) نجيب حالة حمل/رضاعة وأي تفضيلات/حساسيات أكل سبق وذكرها بالشات
+    // عشان النصيحة والتحذيرات الغذائية تراعيها.
     let pregnancyStatus: string | null = null;
-    let foodNotes: string[] = [];
-    const session = await getServerSession(authOptions).catch(() => null);
-    const sessionUserId = (session?.user as { id?: string } | undefined)?.id;
-    if (sessionUserId) {
-      const [profile, notes] = await Promise.all([
-        prisma.profile.findUnique({ where: { userId: sessionUserId } }),
-        prisma.foodNote.findMany({ where: { userId: sessionUserId }, select: { note: true } }),
-      ]);
-      if (profile?.pregnancyStatus && profile.pregnancyStatus !== "none") {
-        pregnancyStatus = profile.pregnancyStatus;
-      }
-      foodNotes = notes.map((n) => n.note);
+    const [profile, notes] = await Promise.all([
+      prisma.profile.findUnique({ where: { userId: sessionUserId } }),
+      prisma.foodNote.findMany({ where: { userId: sessionUserId }, select: { note: true } }),
+    ]);
+    if (profile?.pregnancyStatus && profile.pregnancyStatus !== "none") {
+      pregnancyStatus = profile.pregnancyStatus;
     }
+    const foodNotes: string[] = notes.map((n) => n.note);
 
     // 2) نبني محتوى الرسالة للـ API
     const contentBlocks: Anthropic.MessageParam["content"] = [];

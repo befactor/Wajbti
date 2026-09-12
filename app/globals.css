@@ -212,4 +212,62 @@ h1.title { font-family: "El Messiri", sans-serif; font-size: 26px; font-weight: 
   background: var(--saffron-deep); color: #fff; border: none; border-radius: 20px; padding: 0 18px;
   font-weight: 700; font-size: 13px; cursor: pointer;
 }
+
+/* Pre-auth welcome carousel */
+.welcome-shell {
+  min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column;
+  background: var(--tanoor);
+}
+.welcome-slides {
+  position: relative; flex: 1; overflow: hidden; min-height: 0;
+}
+.welcome-slide {
+  position: absolute; inset: 0; background-size: cover; background-position: center;
+  opacity: 0; transition: opacity 0.9s ease;
+}
+.welcome-slide.active { opacity: 1; }
+.welcome-slide-goal {
+  background: radial-gradient(circle at 30% 20%, var(--saffron) 0%, var(--saffron-deep) 45%, var(--sumac) 100%);
+}
+.welcome-slide-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(43,33,27,0.15) 0%, rgba(43,33,27,0.35) 55%, rgba(43,33,27,0.92) 100%);
+}
+.welcome-stat-bubble {
+  position: absolute; top: calc(24px + env(safe-area-inset-top)); inset-inline-start: 20px;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: rgba(255,251,243,0.92); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center; font-size: 24px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25); z-index: 2;
+}
+.welcome-text-block {
+  position: absolute; bottom: 92px; inset-inline: 0; padding: 0 26px; z-index: 2; text-align: center;
+}
+.welcome-headline {
+  font-family: "El Messiri", sans-serif; font-size: 26px; font-weight: 700; color: #fff;
+  margin-bottom: 10px; line-height: 1.35;
+}
+.welcome-subtext {
+  color: rgba(255,255,255,0.85); font-size: 14px; line-height: 1.7; max-width: 340px; margin: 0 auto;
+}
+.welcome-dots {
+  position: absolute; bottom: 56px; inset-inline: 0; display: flex; justify-content: center; gap: 7px; z-index: 2;
+}
+.welcome-dot {
+  width: 8px; height: 8px; border-radius: 50%; border: none; padding: 0; cursor: pointer;
+  background: rgba(255,255,255,0.35); transition: background 0.3s, width 0.3s;
+}
+.welcome-dot.active { background: var(--saffron); width: 22px; border-radius: 5px; }
+.welcome-cta-area {
+  padding: 18px 24px calc(28px + env(safe-area-inset-bottom)); background: var(--tanoor);
+  display: flex; flex-direction: column; gap: 12px;
+}
+.welcome-cta-primary {
+  display: block; text-align: center; background: var(--saffron); color: var(--tanoor);
+  font-weight: 700; font-size: 15.5px; padding: 16px; border-radius: 18px; text-decoration: none;
+}
+.welcome-cta-secondary {
+  display: block; text-align: center; color: rgba(255,255,255,0.75); font-size: 13.5px;
+  font-weight: 600; text-decoration: none; padding: 4px;
+}
 .chat-input-row button:disabled { opacity: 0.5; cursor: not-allowed; }
