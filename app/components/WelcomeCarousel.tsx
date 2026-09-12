@@ -35,7 +35,13 @@ const SLIDES: Slide[] = [
 const SWIPE_THRESHOLD_PX = 40;
 const AUTO_ADVANCE_MS = 4500;
 
-export default function WelcomeCarousel({ lang }: { lang: Lang }) {
+export default function WelcomeCarousel({
+  lang,
+  setLang,
+}: {
+  lang: Lang;
+  setLang: (lang: Lang) => void;
+}) {
   const t = dict[lang];
   const tw = t.welcome;
   const [active, setActive] = useState(0);
@@ -109,6 +115,13 @@ export default function WelcomeCarousel({ lang }: { lang: Lang }) {
         <div className="welcome-stat-bubble">
           <span className="welcome-stat-emoji">{SLIDES[active].emoji}</span>
         </div>
+
+        <button
+          className="welcome-lang-toggle"
+          onClick={() => setLang(lang === "ar" ? "en" : "ar")}
+        >
+          {lang === "ar" ? "English" : "العربية"}
+        </button>
 
         <div className="welcome-text-block">
           <h1 className="welcome-headline">{tw[SLIDES[active].titleKey]}</h1>

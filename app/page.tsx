@@ -327,7 +327,7 @@ export default function Home() {
   }
 
   if (status === "unauthenticated") {
-    return <WelcomeCarousel lang={lang} />;
+    return <WelcomeCarousel lang={lang} setLang={setLang} />;
   }
 
   if (!profileChecked) {
