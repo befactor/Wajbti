@@ -5,6 +5,7 @@ import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { dict, useLang } from "@/lib/i18n";
 import TabsBar from "@/app/components/TabsBar";
+import OnboardingWizard from "@/app/components/OnboardingWizard";
 
 type ProfileData = {
   sex: "male" | "female";
@@ -79,6 +80,8 @@ export default function ProfilePage() {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [profileChecked, setProfileChecked] = useState(false);
+  const [hasProfile, setHasProfile] = useState(false);
 
   function loadWeightHistory() {
     fetch("/api/weight")
@@ -125,9 +128,11 @@ export default function ProfilePage() {
       .then((data) => {
         if (data.profile) {
           setForm(data.profile);
+          setHasProfile(true);
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setProfileChecked(true));
     loadWeightHistory();
     loadFoodNotes();
   }, [status]);
@@ -202,6 +207,30 @@ export default function ProfilePage() {
         </div>
         <TabsBar lang={lang} />
       </div>
+    );
+  }
+
+  if (!profileChecked) {
+    return (
+      <div dir={t.dir} className="container">
+        <div className="loading-box">
+          <div className="spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasProfile) {
+    return (
+      <OnboardingWizard
+        lang={lang}
+        onComplete={(profile, bmi, bmiCategory) => {
+          setForm(profile);
+          setBmi(bmi);
+          setBmiCategory(bmiCategory);
+          setHasProfile(true);
+        }}
+      />
     );
   }
 

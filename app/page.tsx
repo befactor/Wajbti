@@ -6,6 +6,7 @@ import { dict, useLang } from "@/lib/i18n";
 import { localDateStr } from "@/lib/date";
 import TabsBar from "@/app/components/TabsBar";
 import WelcomeCarousel from "@/app/components/WelcomeCarousel";
+import OnboardingWizard from "@/app/components/OnboardingWizard";
 
 type PortionComponent = {
   component: string;
@@ -83,6 +84,8 @@ export default function Home() {
   const [savedToFavorites, setSavedToFavorites] = useState(false);
   const [diaryError, setDiaryError] = useState("");
   const [favoriteError, setFavoriteError] = useState("");
+  const [profileChecked, setProfileChecked] = useState(false);
+  const [hasProfile, setHasProfile] = useState(false);
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -92,8 +95,10 @@ export default function Home() {
         const isRamadan = !!data.profile?.ramadanMode;
         setRamadanMode(isRamadan);
         setSelectedSlot(isRamadan ? "suhoor" : "breakfast");
+        setHasProfile(!!data.profile);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setProfileChecked(true));
   }, [status]);
   const [listening, setListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
@@ -323,6 +328,24 @@ export default function Home() {
 
   if (status === "unauthenticated") {
     return <WelcomeCarousel lang={lang} />;
+  }
+
+  if (!profileChecked) {
+    return <div style={{ minHeight: "100vh", background: "var(--tanoor)" }} />;
+  }
+
+  if (!hasProfile) {
+    return (
+      <OnboardingWizard
+        lang={lang}
+        onComplete={(profile) => {
+          setHasProfile(true);
+          const isRamadan = !!profile.ramadanMode;
+          setRamadanMode(isRamadan);
+          setSelectedSlot(isRamadan ? "suhoor" : "breakfast");
+        }}
+      />
+    );
   }
 
   return (
