@@ -1,723 +1,333 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { dict, useLang } from "@/lib/i18n";
-import { localDateStr } from "@/lib/date";
+import { Lang, dict, useLang } from "@/lib/i18n";
+import { addDays, localDateStr } from "@/lib/date";
+import { Goal, calculateMacroTargets } from "@/lib/nutrition";
 import TabsBar from "@/app/components/TabsBar";
 import WelcomeCarousel from "@/app/components/WelcomeCarousel";
 import OnboardingWizard from "@/app/components/OnboardingWizard";
 
-type PortionComponent = {
-  component: string;
-  household_measure: string;
-  weight_g: number;
-};
-
-type AnalysisItem = {
-  food_name: string;
-  food_name_en?: string;
-  estimated_weight_g: number;
-  portion_breakdown?: PortionComponent[];
-  hidden_fat_detected: boolean;
-  confidence_score: string;
-  is_standard_portion_estimate?: boolean;
-};
-
-type AnalysisResult = {
-  input_type?: "image" | "text";
-  dining_mode?: boolean;
-  totals: {
-    calories: number;
-    protein_g: number;
-    carbs_g: number;
-    fat_g: number;
-    fiber_g?: number;
-    sugar_g?: number;
-    sodium_mg?: number;
-  };
-  items: AnalysisItem[];
-  ai_nutritionist_tip: string;
-  healthy_swap_suggestion: string;
-  medical_disclaimer_flag?: boolean;
-  needs_clarification?: boolean;
-  clarification_question?: string;
-  clarification_options?: string[];
-};
-
-type ClarificationTurn = { question: string; answer: string };
-
 type MealSlot = "breakfast" | "lunch" | "dinner" | "snack" | "suhoor" | "iftar";
 
-type SpeechRecognitionLike = {
-  lang: string;
-  interimResults: boolean;
-  continuous: boolean;
-  onresult: ((event: { results: { [i: number]: { [j: number]: { transcript: string } } } }) => void) | null;
-  onerror: (() => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
+type MealEntry = {
+  id: string;
+  slot: MealSlot;
+  description: string | null;
+  items: { food_name: string; food_name_en?: string }[];
+  totalCalories: number;
+  totalProteinG: number;
+  totalCarbsG: number;
+  totalFatG: number;
 };
+
+type DayStat = { date: string; logged: boolean; calories: number };
+
+type Profile = {
+  goal: Goal;
+  dailyCalorieTarget: number | null;
+  dailyWaterTargetMl: number | null;
+  ramadanMode: boolean;
+};
+
+const STANDARD_SLOTS: MealSlot[] = ["breakfast", "lunch", "dinner", "snack"];
+const RAMADAN_SLOTS: MealSlot[] = ["suhoor", "iftar"];
+const SLOT_ICONS: Record<MealSlot, string> = {
+  breakfast: "☕",
+  lunch: "🍛",
+  dinner: "🥗",
+  snack: "🍪",
+  suhoor: "🌙",
+  iftar: "🌅",
+};
+// Arabic week starts Saturday; English starts Sunday. Indexed by getUTCDay().
+const WEEKDAY_LETTERS: Record<Lang, string[]> = {
+  ar: ["ح", "ن", "ث", "ر", "خ", "ج", "س"],
+  en: ["S", "M", "T", "W", "T", "F", "S"],
+};
+const WEEK_START_DAY: Record<Lang, number> = { ar: 6, en: 0 };
+
+const PLAN_IMAGE = "https://images.unsplash.com/photo-1633945274405-b6c8069047b0?w=700&q=70&auto=format&fit=crop";
+const CHAT_IMAGE = "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=700&q=70&auto=format&fit=crop";
+
+function weekStart(today: string, lang: Lang): string {
+  const dow = new Date(`${today}T00:00:00Z`).getUTCDay();
+  return addDays(today, -((dow - WEEK_START_DAY[lang] + 7) % 7));
+}
 
 export default function Home() {
   const [lang, setLang] = useLang();
-  const t = dict[lang];
-  const { data: session, status } = useSession();
-  const [description, setDescription] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<AnalysisResult | null>(null);
-  const [error, setError] = useState("");
-  const [selectedSlot, setSelectedSlot] = useState<MealSlot>("breakfast");
-  const [savingMeal, setSavingMeal] = useState(false);
-  const [savedToDiary, setSavedToDiary] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageBase64, setImageBase64] = useState<string | null>(null);
-  const [imageMediaType, setImageMediaType] = useState<string>("image/jpeg");
-  const [diningMode, setDiningMode] = useState(false);
-  const [ramadanMode, setRamadanMode] = useState(false);
-  const [clarificationHistory, setClarificationHistory] = useState<ClarificationTurn[]>([]);
-  const [clarificationAnswer, setClarificationAnswer] = useState("");
-  const [wantsToAddToDiary, setWantsToAddToDiary] = useState<boolean | null>(null);
-  const [feedbackGiven, setFeedbackGiven] = useState(false);
-  const [savingFavorite, setSavingFavorite] = useState(false);
-  const [savedToFavorites, setSavedToFavorites] = useState(false);
-  const [diaryError, setDiaryError] = useState("");
-  const [favoriteError, setFavoriteError] = useState("");
+  const { status } = useSession();
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [profileChecked, setProfileChecked] = useState(false);
-  const [hasProfile, setHasProfile] = useState(false);
-  const [calorieTarget, setCalorieTarget] = useState<number | null>(null);
-  const [todayCalories, setTodayCalories] = useState<number | null>(null);
 
   useEffect(() => {
     if (status !== "authenticated") return;
     fetch("/api/profile")
       .then((r) => r.json())
-      .then((data) => {
-        const isRamadan = !!data.profile?.ramadanMode;
-        setRamadanMode(isRamadan);
-        setSelectedSlot(isRamadan ? "suhoor" : "breakfast");
-        setHasProfile(!!data.profile);
-        setCalorieTarget(data.profile?.dailyCalorieTarget ?? null);
-      })
+      .then((data) => setProfile(data.profile ?? null))
       .catch(() => {})
       .finally(() => setProfileChecked(true));
   }, [status]);
 
-  useEffect(() => {
-    if (status !== "authenticated" || !hasProfile) return;
-    fetch(`/api/meals?date=${localDateStr()}`)
-      .then((r) => r.json())
-      .then((data) => {
-        const meals: { totalCalories: number }[] = data.meals || [];
-        setTodayCalories(meals.reduce((sum, m) => sum + m.totalCalories, 0));
-      })
-      .catch(() => {});
-  }, [status, hasProfile, savedToDiary]);
-  const [listening, setListening] = useState(false);
-  const [speechSupported, setSpeechSupported] = useState(false);
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
-
-  useEffect(() => {
-    const w = window as unknown as Record<string, unknown>;
-    setSpeechSupported(!!(w.SpeechRecognition || w.webkitSpeechRecognition));
-  }, []);
-
-  function toggleListening() {
-    if (listening) {
-      recognitionRef.current?.stop();
-      return;
-    }
-    const SpeechRecognitionCtor =
-      (window as unknown as Record<string, unknown>).SpeechRecognition ||
-      (window as unknown as Record<string, unknown>).webkitSpeechRecognition;
-    if (!SpeechRecognitionCtor) return;
-
-    const recognition: SpeechRecognitionLike = new (SpeechRecognitionCtor as new () => SpeechRecognitionLike)();
-    recognition.lang = lang === "ar" ? "ar-SA" : "en-US";
-    recognition.interimResults = false;
-    recognition.continuous = false;
-
-    recognition.onresult = (event) => {
-      const transcript = event.results[0]?.[0]?.transcript || "";
-      setDescription((prev) => (prev.trim() ? `${prev.trim()} ${transcript}` : transcript));
-    };
-    recognition.onerror = () => setListening(false);
-    recognition.onend = () => setListening(false);
-
-    recognitionRef.current = recognition;
-    setListening(true);
-    recognition.start();
+  if (status === "unauthenticated") return <WelcomeCarousel lang={lang} setLang={setLang} />;
+  if (status === "loading" || !profileChecked) {
+    return <div style={{ minHeight: "100vh", background: "var(--semolina)" }} />;
   }
-
-  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      const img = new Image();
-      img.onload = () => {
-        // Phone camera photos can be several MB, which blows past the
-        // serverless function's request body limit once base64-encoded.
-        // Downscale and re-encode as JPEG before sending.
-        const maxDim = 1600;
-        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          setImagePreview(dataUrl);
-          setImageBase64(dataUrl.split(",")[1] || null);
-          setImageMediaType(file.type || "image/jpeg");
-          return;
-        }
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.8);
-        setImagePreview(compressedDataUrl);
-        setImageBase64(compressedDataUrl.split(",")[1] || null);
-        setImageMediaType("image/jpeg");
-      };
-      img.src = dataUrl;
-    };
-    reader.readAsDataURL(file);
-  }
-
-  function clearImage() {
-    setImagePreview(null);
-    setImageBase64(null);
-  }
-
-  async function runAnalysis(history: ClarificationTurn[]) {
-    if (!description.trim() && !imageBase64) return;
-    setLoading(true);
-    setError("");
-    setResult(null);
-    setSavedToDiary(false);
-    setWantsToAddToDiary(null);
-    setFeedbackGiven(false);
-    setSavedToFavorites(false);
-    try {
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          description: description.trim() || undefined,
-          imageBase64: imageBase64 || undefined,
-          mediaType: imageBase64 ? imageMediaType : undefined,
-          diningMode,
-          clarificationHistory: history.length > 0 ? history : undefined,
-          lang,
-        }),
-      });
-      const data = await res.json();
-      if (data.error) {
-        setError(
-          data.error === "missingInputError"
-            ? t.missingInputError
-            : data.error === "analyzeError"
-            ? t.analyzeError
-            : data.error === "unauthorizedError"
-            ? t.unauthorizedError
-            : t.auth.genericError
-        );
-      } else {
-        setResult(data);
-      }
-    } catch (e) {
-      setError(lang === "ar" ? "حدث خطأ، حاول مرة أخرى" : "Something went wrong, try again");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // Fresh analysis: starts a new clarification thread.
-  async function analyze() {
-    setClarificationHistory([]);
-    await runAnalysis([]);
-  }
-
-  // Continue an in-progress clarification: answer the AI's question and
-  // re-analyze with the accumulated Q&A as extra context. May come back
-  // with another question, or a full result once it has enough to go on.
-  async function submitClarification(optionAnswer?: string) {
-    const answer = (optionAnswer ?? clarificationAnswer).trim();
-    if (!result?.clarification_question || !answer) return;
-    const nextHistory = [
-      ...clarificationHistory,
-      { question: result.clarification_question, answer },
-    ];
-    setClarificationHistory(nextHistory);
-    setClarificationAnswer("");
-    await runAnalysis(nextHistory);
-  }
-
-  async function sendFeedback(correct: boolean) {
-    if (!result) return;
-    if (correct) {
-      setFeedbackGiven(true);
-      return;
-    }
-    // المستخدم يصحح اسم الأكلة بس - الأرقام (سعرات/وزن) مسؤولية النظام حصراً
-    const correctedFoodName = window.prompt(
-      lang === "ar" ? "ما هو الاسم الصحيح للطعام؟" : "What's the correct food name?"
-    );
-    if (!correctedFoodName) return;
-    await fetch("/api/feedback", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        original_description: description,
-        corrected_food_name: correctedFoodName,
-      }),
-    }).catch(() => {});
-    setFeedbackGiven(true);
-  }
-
-  async function addToDiary() {
-    if (!result) return;
-    setSavingMeal(true);
-    setDiaryError("");
-    try {
-      const res = await fetch("/api/meals", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          date: localDateStr(),
-          slot: selectedSlot,
-          description,
-          inputType: result.input_type || "text",
-          items: result.items,
-          totals: result.totals,
-          aiTip: result.ai_nutritionist_tip,
-          swapSuggestion: result.healthy_swap_suggestion,
-          diningContext: result.dining_mode ? "restaurant" : undefined,
-        }),
-      });
-      const data = await res.json();
-      if (data.error) {
-        setDiaryError(t.diaryAddError);
-      } else {
-        setSavedToDiary(true);
-      }
-    } catch {
-      setDiaryError(t.diaryAddError);
-    } finally {
-      setSavingMeal(false);
-    }
-  }
-
-  async function addToFavorites() {
-    if (!result) return;
-    setSavingFavorite(true);
-    setFavoriteError("");
-    try {
-      const foodName =
-        result.items?.map((i) => (lang === "ar" ? i.food_name : i.food_name_en || i.food_name)).join("، ") ||
-        description;
-      const res = await fetch("/api/favorites", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ foodName, items: result.items, totals: result.totals }),
-      });
-      const data = await res.json();
-      if (data.error) {
-        setFavoriteError(t.favoriteAddError);
-      } else {
-        setSavedToFavorites(true);
-      }
-    } catch {
-      setFavoriteError(t.favoriteAddError);
-    } finally {
-      setSavingFavorite(false);
-    }
-  }
-
-  if (status === "loading") {
-    return <div style={{ minHeight: "100vh", background: "var(--tanoor)" }} />;
-  }
-
-  if (status === "unauthenticated") {
-    return <WelcomeCarousel lang={lang} setLang={setLang} />;
-  }
-
-  if (!profileChecked) {
-    return <div style={{ minHeight: "100vh", background: "var(--tanoor)" }} />;
-  }
-
-  if (!hasProfile) {
+  if (!profile) {
     return (
       <OnboardingWizard
         lang={lang}
-        onComplete={(profile) => {
-          setHasProfile(true);
-          setCalorieTarget(profile.dailyCalorieTarget ?? null);
-          const isRamadan = !!profile.ramadanMode;
-          setRamadanMode(isRamadan);
-          setSelectedSlot(isRamadan ? "suhoor" : "breakfast");
-        }}
+        onComplete={(p) =>
+          setProfile({
+            goal: p.goal,
+            dailyCalorieTarget: p.dailyCalorieTarget ?? null,
+            dailyWaterTargetMl: p.dailyWaterTargetMl ?? null,
+            ramadanMode: !!p.ramadanMode,
+          })
+        }
       />
     );
   }
+  return <TodayDashboard lang={lang} setLang={setLang} profile={profile} />;
+}
+
+function TodayDashboard({
+  lang,
+  setLang,
+  profile,
+}: {
+  lang: Lang;
+  setLang: (l: Lang) => void;
+  profile: Profile;
+}) {
+  const t = dict[lang];
+  const th = t.home;
+  const { data: session } = useSession();
+  const today = localDateStr();
+  const start = weekStart(today, lang);
+
+  const [meals, setMeals] = useState<MealEntry[] | null>(null);
+  const [week, setWeek] = useState<DayStat[]>([]);
+  const [streak, setStreak] = useState(0);
+  const [waterMl, setWaterMl] = useState(0);
+  const [waterGoalMl, setWaterGoalMl] = useState(profile.dailyWaterTargetMl ?? 2000);
+  const [addingWater, setAddingWater] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/meals?date=${today}`)
+      .then((r) => r.json())
+      .then((d) => setMeals(d.meals || []))
+      .catch(() => setMeals([]));
+    fetch("/api/stats/streak")
+      .then((r) => r.json())
+      .then((d) => setStreak(d.streak || 0))
+      .catch(() => {});
+    fetch(`/api/water?date=${today}`)
+      .then((r) => r.json())
+      .then((d) => {
+        setWaterMl(d.totalMl || 0);
+        if (d.settings?.dailyGoalMl) setWaterGoalMl(d.settings.dailyGoalMl);
+      })
+      .catch(() => {});
+  }, [today]);
+
+  useEffect(() => {
+    fetch(`/api/stats/range?start=${start}&days=7`)
+      .then((r) => r.json())
+      .then((d) => setWeek(d.days || []))
+      .catch(() => {});
+  }, [start]);
+
+  async function addGlass() {
+    setAddingWater(true);
+    setWaterMl((v) => v + 250);
+    try {
+      const res = await fetch("/api/water", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amountMl: 250 }),
+      });
+      const data = await res.json();
+      if (!data.log) setWaterMl((v) => v - 250);
+    } catch {
+      setWaterMl((v) => v - 250);
+    } finally {
+      setAddingWater(false);
+    }
+  }
+
+  const calorieTarget = profile.dailyCalorieTarget ?? 2000;
+  const macroTargets = calculateMacroTargets(calorieTarget, profile.goal);
+  const totals = (meals ?? []).reduce(
+    (acc, m) => ({
+      calories: acc.calories + m.totalCalories,
+      protein: acc.protein + m.totalProteinG,
+      carbs: acc.carbs + m.totalCarbsG,
+      fat: acc.fat + m.totalFatG,
+    }),
+    { calories: 0, protein: 0, carbs: 0, fat: 0 }
+  );
+  const left = Math.round(calorieTarget - totals.calories);
+  const slots = profile.ramadanMode ? RAMADAN_SLOTS : STANDARD_SLOTS;
+  const firstName = (session?.user?.name || "").split(" ")[0];
+  const macroRows = [
+    { key: "carbs", label: th.carbs, value: totals.carbs, target: macroTargets.carbsG, color: "var(--macro-carbs)" },
+    { key: "fat", label: th.fat, value: totals.fat, target: macroTargets.fatG, color: "var(--macro-fat)" },
+    { key: "protein", label: th.protein, value: totals.protein, target: macroTargets.proteinG, color: "var(--macro-protein)" },
+  ];
 
   return (
-    <div dir={t.dir} className="container">
-      <div className="top-nav">
-        <div className="top-nav-auth">
-          <span>{session?.user?.name || session?.user?.email}</span>
-          <button onClick={() => signOut({ callbackUrl: "/" })}>{t.auth.signOut}</button>
+    <div dir={t.dir} className="container today-page">
+      <div className="today-header">
+        <div>
+          {firstName && <p className="today-hello">{lang === "ar" ? `أهلاً ${firstName} 👋` : `Hi ${firstName} 👋`}</p>}
+          <h1>{th.title}</h1>
         </div>
-        <button className="lang-toggle-inline" onClick={() => setLang(lang === "ar" ? "en" : "ar")}>
-          {lang === "ar" ? "English" : "العربية"}
-        </button>
+        <div className="today-header-actions">
+          <span className="streak-chip" title={th.streakDays}>
+            🔥 {streak}
+          </span>
+          <button className="lang-toggle-inline" onClick={() => setLang(lang === "ar" ? "en" : "ar")}>
+            {lang === "ar" ? "EN" : "ع"}
+          </button>
+        </div>
       </div>
 
-      <div className="brand">
-        <div className="brand-mark" />
-        <h1 className="title">{t.appName}</h1>
-      </div>
-      <p className="tagline">{t.tagline}</p>
-
-      {!result && !loading && calorieTarget != null && todayCalories != null && (
-        <Link href="/diary" className="today-card">
-          <div className="today-card-main">
-            <span className="today-card-label">
-              {todayCalories > calorieTarget ? t.today.over : t.today.remaining}
-            </span>
-            <span className="today-card-number">
-              {Math.abs(Math.round(calorieTarget - todayCalories))}
-              <small> kcal</small>
-            </span>
-          </div>
-          <div className="today-card-bar">
-            <div
-              className={`today-card-bar-fill ${todayCalories > calorieTarget ? "over" : ""}`}
-              style={{ width: `${Math.min(100, (todayCalories / calorieTarget) * 100)}%` }}
-            />
-          </div>
-          <div className="today-card-meta">
-            <span>
-              {t.today.consumed} {Math.round(todayCalories)} · {t.today.goal} {Math.round(calorieTarget)}
-            </span>
-            <span className="today-card-link">
-              {t.today.openDiary} {t.dir === "rtl" ? "←" : "→"}
-            </span>
-          </div>
-        </Link>
-      )}
-
-      {!result && !loading && (
-        <>
-          {imagePreview ? (
-            <div className="image-preview-card">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imagePreview} alt={t.captureTitle} />
-              <button className="image-remove-btn" onClick={clearImage} aria-label={t.removeImage}>
-                ✕
-              </button>
-            </div>
-          ) : (
+      <div className="week-strip">
+        {Array.from({ length: 7 }, (_, i) => {
+          const date = addDays(start, i);
+          const stat = week.find((d) => d.date === date);
+          const dow = new Date(`${date}T00:00:00Z`).getUTCDay();
+          const isToday = date === today;
+          const isFuture = date > today;
+          const pct = stat ? Math.min(1, stat.calories / calorieTarget) : 0;
+          const content = (
             <>
-              <label className="capture-photo-card" htmlFor="meal-photo-input">
-                <div className="capture-photo-overlay" />
-                <div className="capture-photo-content">
-                  <span className="capture-btn">📷</span>
-                  <h2>{t.captureTitle}</h2>
-                  <p>{t.captureHint}</p>
-                </div>
-              </label>
-              <input
-                id="meal-photo-input"
-                type="file"
-                accept="image/*"
-                onChange={handleImageSelect}
-                style={{ display: "none" }}
-              />
-              <p className="capture-or">{t.captureDesc}</p>
-            </>
-          )}
-
-          <div className="desc-input">
-            <input
-              type="text"
-              placeholder={t.placeholder}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && analyze()}
-            />
-            {speechSupported && (
-              <button
-                type="button"
-                className={`mic-btn ${listening ? "listening" : ""}`}
-                onClick={toggleListening}
-                aria-label={t.voiceInput}
+              <span className={`week-day-letter ${isToday ? "today" : ""}`}>{WEEKDAY_LETTERS[lang][dow]}</span>
+              <span
+                className={`week-day-ring ${isToday ? "today" : ""} ${stat?.logged ? "logged" : ""}`}
+                style={{ ["--pct" as string]: `${pct * 360}deg` }}
               >
-                🎙️
-              </button>
-            )}
-          </div>
-
-          <label className="dining-toggle">
-            <input type="checkbox" checked={diningMode} onChange={(e) => setDiningMode(e.target.checked)} />
-            {t.diningModeLabel}
-          </label>
-
-          {error && <p style={{ color: "var(--sumac)", fontSize: 13, marginBottom: 10 }}>{error}</p>}
-
-          <button className="analyze-cta" onClick={analyze} disabled={!description.trim() && !imageBase64}>
-            {t.analyzeCta}
-          </button>
-        </>
-      )}
-
-      {loading && (
-        <div className="loading-box">
-          <div className="spin" />
-          <p style={{ fontFamily: "El Messiri, Cairo, sans-serif", fontSize: 16 }}>{t.loading}</p>
-          <span style={{ fontSize: 12 }}>{t.loadingSub}</span>
-        </div>
-      )}
-
-      {result && result.needs_clarification && (
-        <div className="tip-card">
-          {clarificationHistory.length > 0 && (
-            <div className="clarification-history">
-              {clarificationHistory.map((turn, i) => (
-                <p key={i} className="clarification-turn">
-                  <strong>{turn.question}</strong>
-                  <br />
-                  {turn.answer}
-                </p>
-              ))}
-            </div>
-          )}
-          <p className="clarification-question">❓ {result.clarification_question}</p>
-          {result.clarification_options && result.clarification_options.length > 0 && (
-            <div className="feedback-row" style={{ flexWrap: "wrap" }}>
-              {result.clarification_options.map((opt, i) => (
-                <button
-                  key={i}
-                  style={{ flex: "1 1 auto", minWidth: 90 }}
-                  onClick={() => submitClarification(opt)}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-          )}
-          <div className="desc-input">
-            <input
-              type="text"
-              placeholder={t.clarificationPlaceholder}
-              value={clarificationAnswer}
-              onChange={(e) => setClarificationAnswer(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submitClarification()}
-            />
-          </div>
-          {error && <p style={{ color: "var(--sumac)", fontSize: 13, marginBottom: 10 }}>{error}</p>}
-          <button className="analyze-cta" onClick={() => submitClarification()} disabled={!clarificationAnswer.trim()}>
-            {t.clarificationSubmit}
-          </button>
-          <button
-            className="analyze-cta"
-            style={{ background: "var(--card)", color: "var(--tanoor)", border: "1px solid var(--line)" }}
-            onClick={() => {
-              setResult(null);
-              setClarificationHistory([]);
-              setClarificationAnswer("");
-            }}
-          >
-            {t.newMeal}
-          </button>
-        </div>
-      )}
-
-      {result && !result.needs_clarification && (
-        <>
-          <div className="plate-wrap">
-            <div className="plate">
-              <svg viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r="52" fill="none" stroke="#e6dcc8" strokeWidth="12" />
-                <circle
-                  cx="60" cy="60" r="52" fill="none" stroke="#e8a33d" strokeWidth="12"
-                  strokeDasharray="326.7" strokeDashoffset="163.3" strokeLinecap="round"
-                />
-              </svg>
-              <div className="plate-center">
-                <div className="cal">{result.totals.calories}</div>
-                <div className="cal-label">{t.calories}</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="macro-row">
-            <div className="macro-chip">
-              <div className="dot" style={{ background: "var(--saffron)" }} />
-              <div className="val">{result.totals.protein_g}g</div>
-              <div className="lbl">{t.protein}</div>
-            </div>
-            <div className="macro-chip">
-              <div className="dot" style={{ background: "var(--sumac)" }} />
-              <div className="val">{result.totals.carbs_g}g</div>
-              <div className="lbl">{t.carbs}</div>
-            </div>
-            <div className="macro-chip">
-              <div className="dot" style={{ background: "var(--zaatar)" }} />
-              <div className="val">{result.totals.fat_g}g</div>
-              <div className="lbl">{t.fat}</div>
-            </div>
-          </div>
-
-          {result.dining_mode && <div className="dining-badge">🍽️ {t.diningModeBadge}</div>}
-
-          {result.items?.some((i) => i.hidden_fat_detected) && (
-            <div className="hidden-fat-flag">
-              ⚠️ {lang === "ar" ? "رصدنا دهوناً خفية في الوجبة" : "Hidden fats detected in this meal"}
-            </div>
-          )}
-
-          {result.input_type === "text" &&
-            result.items?.some((i) => i.portion_breakdown && i.portion_breakdown.length > 0) && (
-              <div className="tip-card portion-card">
-                <h3>📏 {t.portionTitle}</h3>
-                <p className="portion-disclaimer">{t.portionDisclaimer}</p>
-                {result.items.map((item, idx) =>
-                  item.portion_breakdown && item.portion_breakdown.length > 0 ? (
-                    <div key={idx} className="portion-item">
-                      <strong>{lang === "ar" ? item.food_name : item.food_name_en || item.food_name}</strong>
-                      <ul>
-                        {item.portion_breakdown.map((p, i) => (
-                          <li key={i}>
-                            {p.component} — {p.household_measure} (~{p.weight_g}g)
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null
-                )}
-              </div>
-            )}
-
-          <div className="tip-card">
-            <h3>💡 {t.tipTitle}</h3>
-            <p>{result.ai_nutritionist_tip}</p>
-          </div>
-
-          <div className="tip-card">
-            <h3>🔄 {t.swapTitle}</h3>
-            <p>{result.healthy_swap_suggestion}</p>
-          </div>
-
-          {feedbackGiven ? (
-            <p style={{ textAlign: "center", color: "var(--zaatar)", fontWeight: 700, fontSize: 13 }}>
-              ✓ {t.thanksFeedback}
-            </p>
+                {stat?.logged && pct >= 0.9 ? "✓" : ""}
+              </span>
+            </>
+          );
+          return isFuture ? (
+            <span key={date} className="week-day future">
+              {content}
+            </span>
           ) : (
-            <div className="feedback-row">
-              <button onClick={() => sendFeedback(true)}>{t.correct}</button>
-              <button onClick={() => sendFeedback(false)}>{t.fix}</button>
-            </div>
-          )}
+            <Link key={date} href={`/diary?date=${date}`} className="week-day">
+              {content}
+            </Link>
+          );
+        })}
+      </div>
 
-          {status === "authenticated" && (
-            <div className="form-card">
-              {savedToDiary ? (
-                <p style={{ textAlign: "center", color: "var(--zaatar)", fontWeight: 700, fontSize: 13 }}>
-                  ✓ {t.addedToDiary}
+      <Link href="/diary" className="dash-card calories-card">
+        <p className="dash-card-title">{th.calories}</p>
+        <div className="calories-row">
+          <p className="calories-eaten">
+            <strong>{Math.round(totals.calories)}</strong>
+            <span> / {Math.round(calorieTarget)} 🔥</span>
+          </p>
+          <p className={`calories-left ${left < 0 ? "over" : ""}`}>
+            <strong>{Math.abs(left)}</strong> {left < 0 ? th.over : th.left}
+          </p>
+        </div>
+        <div className="dash-bar">
+          <div
+            className={`dash-bar-fill ${left < 0 ? "over" : ""}`}
+            style={{ width: `${Math.min(100, (totals.calories / calorieTarget) * 100)}%` }}
+          />
+        </div>
+      </Link>
+
+      <div className="dash-card macros-card">
+        {macroRows.map((m) => (
+          <div key={m.key} className="macro-col">
+            <p className="macro-col-label">{m.label}</p>
+            <p className="macro-col-value">
+              <strong>{Math.round(m.value)}g</strong>
+              <span> / {m.target}</span>
+            </p>
+            <div className="dash-bar small">
+              <div
+                className="dash-bar-fill"
+                style={{ width: `${Math.min(100, (m.value / m.target) * 100)}%`, background: m.color }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="dash-card water-card">
+        <div className="water-card-info">
+          <span className="water-card-icon">💧</span>
+          <div>
+            <p className="dash-card-title">{th.water}</p>
+            <p className="water-card-amount">
+              <strong>{(waterMl / 1000).toFixed(2)}</strong> / {(waterGoalMl / 1000).toFixed(1)} L
+            </p>
+          </div>
+        </div>
+        <button className="pill-btn water-pill" onClick={addGlass} disabled={addingWater}>
+          {th.addWater}
+        </button>
+        <div className="dash-bar small water-card-bar">
+          <div className="dash-bar-fill water" style={{ width: `${Math.min(100, (waterMl / waterGoalMl) * 100)}%` }} />
+        </div>
+      </div>
+
+      <div className="section-header">
+        <h2>{th.meals}</h2>
+        <Link href="/diary">{th.viewDiary}</Link>
+      </div>
+
+      {slots.map((slot) => {
+        const slotMeals = (meals ?? []).filter((m) => m.slot === slot);
+        const kcal = slotMeals.reduce((s, m) => s + m.totalCalories, 0);
+        const names = slotMeals
+          .flatMap((m) =>
+            m.items?.length
+              ? m.items.map((i) => (lang === "ar" ? i.food_name : i.food_name_en || i.food_name))
+              : [m.description || ""]
+          )
+          .filter(Boolean)
+          .join(lang === "ar" ? "، " : ", ");
+        return (
+          <div key={slot} className="meal-slot-card">
+            <span className="meal-slot-icon">{SLOT_ICONS[slot]}</span>
+            <div className="meal-slot-info">
+              <p className="meal-slot-name">{t.diary.slots[slot]}</p>
+              {slotMeals.length > 0 && (
+                <p className="meal-slot-items">
+                  {Math.round(kcal)} kcal · {names}
                 </p>
-              ) : wantsToAddToDiary === false ? (
-                <p style={{ textAlign: "center", color: "var(--taupe)", fontSize: 13 }}>{t.skippedDiary}</p>
-              ) : wantsToAddToDiary === true ? (
-                <>
-                  <div className="form-field">
-                    <label>{t.addToDiaryTitle}</label>
-                    <select
-                      value={selectedSlot}
-                      onChange={(e) => setSelectedSlot(e.target.value as MealSlot)}
-                    >
-                      {ramadanMode ? (
-                        <>
-                          <option value="suhoor">{t.diary.slots.suhoor}</option>
-                          <option value="iftar">{t.diary.slots.iftar}</option>
-                        </>
-                      ) : (
-                        <>
-                          <option value="breakfast">{t.slotBreakfast}</option>
-                          <option value="lunch">{t.slotLunch}</option>
-                          <option value="dinner">{t.slotDinner}</option>
-                          <option value="snack">{t.slotSnack}</option>
-                        </>
-                      )}
-                    </select>
-                  </div>
-                  <button className="analyze-cta" onClick={addToDiary} disabled={savingMeal}>
-                    {t.addToDiaryCta}
-                  </button>
-                  {diaryError && (
-                    <p style={{ color: "var(--sumac)", fontSize: 12.5, marginTop: 10, textAlign: "center" }}>
-                      {diaryError}
-                    </p>
-                  )}
-                </>
-              ) : (
-                <>
-                  <p style={{ textAlign: "center", fontSize: 13.5, fontWeight: 700, marginBottom: 12 }}>
-                    {t.addToDiaryQuestion}
-                  </p>
-                  <div className="feedback-row">
-                    <button onClick={() => setWantsToAddToDiary(true)}>{t.yesAdd}</button>
-                    <button onClick={() => setWantsToAddToDiary(false)}>{t.noJustChecking}</button>
-                  </div>
-                </>
               )}
             </div>
-          )}
+            <Link href={`/log?slot=${slot}`} className="meal-slot-log">
+              {th.logCta}
+            </Link>
+          </div>
+        );
+      })}
 
-          {status === "authenticated" &&
-            (savedToFavorites ? (
-              <p style={{ textAlign: "center", color: "var(--zaatar)", fontWeight: 700, fontSize: 13 }}>
-                {t.addedToFavorites}
-              </p>
-            ) : (
-              <>
-                <button
-                  className="analyze-cta"
-                  style={{ background: "var(--card)", color: "var(--tanoor)", border: "1px solid var(--line)" }}
-                  onClick={addToFavorites}
-                  disabled={savingFavorite}
-                >
-                  {t.addToFavorites}
-                </button>
-                {favoriteError && (
-                  <p style={{ color: "var(--sumac)", fontSize: 12.5, marginTop: 10, textAlign: "center" }}>
-                    {favoriteError}
-                  </p>
-                )}
-              </>
-            ))}
-
-          <button
-            className="analyze-cta"
-            onClick={() => {
-              setResult(null);
-              setDescription("");
-              setSavedToDiary(false);
-              setDiningMode(false);
-              setClarificationHistory([]);
-              setClarificationAnswer("");
-              setWantsToAddToDiary(null);
-              setSavedToFavorites(false);
-              clearImage();
-            }}
-          >
-            {t.newMeal}
-          </button>
-        </>
-      )}
+      <div className="discover-row">
+        <Link href="/plan" className="discover-card" style={{ backgroundImage: `url(${PLAN_IMAGE})` }}>
+          <span className="discover-overlay" />
+          <span className="discover-text">
+            🗓️ {t.plan.title}
+          </span>
+        </Link>
+        <Link href="/chat" className="discover-card" style={{ backgroundImage: `url(${CHAT_IMAGE})` }}>
+          <span className="discover-overlay" />
+          <span className="discover-text">💬 {t.chat.title}</span>
+        </Link>
+      </div>
 
       <TabsBar lang={lang} />
     </div>

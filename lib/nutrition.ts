@@ -75,6 +75,26 @@ export function calculateDailyCalorieTarget(
   return Math.round(tdee);
 }
 
+// Daily macro targets as a share of calories, kept inside the Acceptable
+// Macronutrient Distribution Ranges (protein 10-35%, carbs 45-65%, fat
+// 20-35%), with more protein when losing weight to protect lean mass.
+const MACRO_SPLIT: Record<Goal, { protein: number; carbs: number; fat: number }> = {
+  lose: { protein: 0.3, carbs: 0.45, fat: 0.25 },
+  maintain: { protein: 0.2, carbs: 0.5, fat: 0.3 },
+  gain: { protein: 0.25, carbs: 0.5, fat: 0.25 },
+};
+
+export type MacroTargets = { proteinG: number; carbsG: number; fatG: number };
+
+export function calculateMacroTargets(dailyCalories: number, goal: Goal): MacroTargets {
+  const split = MACRO_SPLIT[goal] ?? MACRO_SPLIT.maintain;
+  return {
+    proteinG: Math.round((dailyCalories * split.protein) / 4),
+    carbsG: Math.round((dailyCalories * split.carbs) / 4),
+    fatG: Math.round((dailyCalories * split.fat) / 9),
+  };
+}
+
 // ~33ml per kg of body weight as a baseline, plus an activity bonus.
 export function calculateDailyWaterTargetMl(
   weightKg: number,

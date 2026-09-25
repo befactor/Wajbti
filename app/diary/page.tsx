@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { dict, useLang } from "@/lib/i18n";
 import TabsBar from "@/app/components/TabsBar";
@@ -42,12 +42,19 @@ const RAMADAN_SLOTS: MealSlot[] = ["suhoor", "iftar"];
 const NOTIF_PROMPT_DISMISSED_KEY = "wajbti_diary_notif_prompt_dismissed";
 
 export default function DiaryPage() {
-  const [lang, setLang] = useLang();
+  const [lang] = useLang();
   const t = dict[lang];
   const td = t.diary;
-  const { data: session, status } = useSession();
+  const { status } = useSession();
 
   const [dateStr, setDateStr] = useState(() => localDateStr());
+
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get("date");
+    if (requested && /^\d{4}-\d{2}-\d{2}$/.test(requested) && requested <= localDateStr()) {
+      setDateStr(requested);
+    }
+  }, []);
   const [meals, setMeals] = useState<MealEntry[]>([]);
   const [calorieTarget, setCalorieTarget] = useState<number | null>(null);
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
@@ -265,19 +272,12 @@ export default function DiaryPage() {
 
   return (
     <div dir={t.dir} className="container">
-      <div className="top-nav">
-        <div className="top-nav-auth">
-          <span>{session?.user?.name || session?.user?.email}</span>
-          <button onClick={() => signOut({ callbackUrl: "/" })}>{t.auth.signOut}</button>
-        </div>
-        <button className="lang-toggle-inline" onClick={() => setLang(lang === "ar" ? "en" : "ar")}>
-          {lang === "ar" ? "English" : "العربية"}
-        </button>
-      </div>
-
-      <div className="brand">
-        <div className="brand-mark" />
-        <h1 className="title">{td.title}</h1>
+      <div className="page-header">
+        <Link href="/" className="page-header-back" aria-label="back">
+          {t.dir === "rtl" ? "→" : "←"}
+        </Link>
+        <h1>{td.title}</h1>
+        <span />
       </div>
 
       <div className="date-nav">
@@ -332,17 +332,17 @@ export default function DiaryPage() {
 
           <div className="macro-row">
             <div className="macro-chip">
-              <div className="dot" style={{ background: "var(--saffron)" }} />
+              <div className="dot" style={{ background: "var(--macro-protein)" }} />
               <div className="val">{Math.round(totals.protein)}g</div>
               <div className="lbl">{t.protein}</div>
             </div>
             <div className="macro-chip">
-              <div className="dot" style={{ background: "var(--sumac)" }} />
+              <div className="dot" style={{ background: "var(--macro-carbs)" }} />
               <div className="val">{Math.round(totals.carbs)}g</div>
               <div className="lbl">{t.carbs}</div>
             </div>
             <div className="macro-chip">
-              <div className="dot" style={{ background: "var(--zaatar)" }} />
+              <div className="dot" style={{ background: "var(--macro-fat)" }} />
               <div className="val">{Math.round(totals.fat)}g</div>
               <div className="lbl">{t.fat}</div>
             </div>
@@ -370,7 +370,7 @@ export default function DiaryPage() {
           )}
 
           {favorites.length > 0 && (
-            <div className="tip-card">
+            <div className="tip-card" id="favorites">
               <h3>{td.favoritesTitle}</h3>
               <div className="form-field">
                 <select value={favoriteSlot} onChange={(e) => setFavoriteSlot(e.target.value as MealSlot)}>
@@ -418,7 +418,7 @@ export default function DiaryPage() {
           )}
 
           {meals.length === 0 && (
-            <Link href="/" className="empty-photo-card">
+            <Link href="/log" className="empty-photo-card">
               <div className="capture-photo-overlay" />
               <div className="empty-photo-content">
                 <p>{td.empty}</p>
@@ -435,7 +435,7 @@ export default function DiaryPage() {
                   <div>
                     <strong>
                       {meal.diningContext === "restaurant" && "🍽️ "}
-                      {meal.items?.map((i) => (lang === "ar" ? i.food_name : i.food_name_en || i.food_name)).join("، ") ||
+                      {meal.items?.map((i) => (lang === "ar" ? i.food_name : i.food_name_en || i.food_name)).join(lang === "ar" ? "، " : ", ") ||
                         meal.description}
                     </strong>
                     <div className="diary-meal-cal">{Math.round(meal.totalCalories)} kcal</div>

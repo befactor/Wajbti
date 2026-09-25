@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { dict, useLang } from "@/lib/i18n";
 import TabsBar from "@/app/components/TabsBar";
@@ -54,10 +54,10 @@ const CUISINE_CHIPS = [
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 export default function PlanPage() {
-  const [lang, setLang] = useLang();
+  const [lang] = useLang();
   const t = dict[lang];
   const tp = t.plan;
-  const { data: session, status } = useSession();
+  const { status } = useSession();
 
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
   const [plan, setPlan] = useState<MealPlan | null>(null);
@@ -231,19 +231,12 @@ export default function PlanPage() {
 
   return (
     <div dir={t.dir} className="container">
-      <div className="top-nav">
-        <div className="top-nav-auth">
-          <span>{session?.user?.name || session?.user?.email}</span>
-          <button onClick={() => signOut({ callbackUrl: "/" })}>{t.auth.signOut}</button>
-        </div>
-        <button className="lang-toggle-inline" onClick={() => setLang(lang === "ar" ? "en" : "ar")}>
-          {lang === "ar" ? "English" : "العربية"}
-        </button>
-      </div>
-
-      <div className="brand">
-        <div className="brand-mark" />
-        <h1 className="title">{tp.title}</h1>
+      <div className="page-header">
+        <Link href="/more" className="page-header-back" aria-label="back">
+          {t.dir === "rtl" ? "→" : "←"}
+        </Link>
+        <h1>{tp.title}</h1>
+        <span />
       </div>
       <p className="tagline">{tp.subtitle}</p>
 

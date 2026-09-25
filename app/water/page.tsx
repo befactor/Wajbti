@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
@@ -51,10 +51,10 @@ function computeReminderSlots(settings: WaterSettings): { hour: number; minute: 
 }
 
 export default function WaterPage() {
-  const [lang, setLang] = useLang();
+  const [lang] = useLang();
   const t = dict[lang];
   const tw = t.water;
-  const { data: session, status } = useSession();
+  const { status } = useSession();
 
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
   const [settings, setSettings] = useState<WaterSettings | null>(null);
@@ -272,19 +272,12 @@ export default function WaterPage() {
 
   return (
     <div dir={t.dir} className="container">
-      <div className="top-nav">
-        <div className="top-nav-auth">
-          <span>{session?.user?.name || session?.user?.email}</span>
-          <button onClick={() => signOut({ callbackUrl: "/" })}>{t.auth.signOut}</button>
-        </div>
-        <button className="lang-toggle-inline" onClick={() => setLang(lang === "ar" ? "en" : "ar")}>
-          {lang === "ar" ? "English" : "العربية"}
-        </button>
-      </div>
-
-      <div className="brand">
-        <div className="brand-mark" />
-        <h1 className="title">{tw.title}</h1>
+      <div className="page-header">
+        <Link href="/more" className="page-header-back" aria-label="back">
+          {t.dir === "rtl" ? "→" : "←"}
+        </Link>
+        <h1>{tw.title}</h1>
+        <span />
       </div>
 
       {hasProfile === false && (

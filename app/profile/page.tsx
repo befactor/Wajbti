@@ -51,6 +51,11 @@ const SOURCES: { ar: string; en: string; url: string }[] = [
     url: "https://www.cdc.gov/healthyweight/losing_weight/index.html",
   },
   {
+    ar: "توزيع البروتين والكربوهيدرات والدهون (AMDR)",
+    en: "Protein/carb/fat split (AMDR)",
+    url: "https://www.dietaryguidelines.gov/#amdr",
+  },
+  {
     ar: "هدف شرب الماء اليومي",
     en: "Daily water intake target",
     url: "https://www.mayoclinic.org/healthy-lifestyle/nutrition-and-healthy-eating/in-depth/water/art-20044256",
@@ -58,10 +63,10 @@ const SOURCES: { ar: string; en: string; url: string }[] = [
 ];
 
 export default function ProfilePage() {
-  const [lang, setLang] = useLang();
+  const [lang] = useLang();
   const t = dict[lang];
   const tp = t.profile;
-  const { data: session, status } = useSession();
+  const { status } = useSession();
 
   const [form, setForm] = useState<Partial<ProfileData>>({
     sex: "male",
@@ -236,19 +241,12 @@ export default function ProfilePage() {
 
   return (
     <div dir={t.dir} className="container">
-      <div className="top-nav">
-        <div className="top-nav-auth">
-          <span>{session?.user?.name || session?.user?.email}</span>
-          <button onClick={() => signOut({ callbackUrl: "/" })}>{t.auth.signOut}</button>
-        </div>
-        <button className="lang-toggle-inline" onClick={() => setLang(lang === "ar" ? "en" : "ar")}>
-          {lang === "ar" ? "English" : "العربية"}
-        </button>
-      </div>
-
-      <div className="brand">
-        <div className="brand-mark" />
-        <h1 className="title">{tp.title}</h1>
+      <div className="page-header">
+        <Link href="/more" className="page-header-back" aria-label="back">
+          {t.dir === "rtl" ? "→" : "←"}
+        </Link>
+        <h1>{tp.title}</h1>
+        <span />
       </div>
 
       {(form.bmr || bmi) && (

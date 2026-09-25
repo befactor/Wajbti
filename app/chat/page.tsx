@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { dict, useLang } from "@/lib/i18n";
 import TabsBar from "@/app/components/TabsBar";
@@ -9,10 +9,10 @@ import TabsBar from "@/app/components/TabsBar";
 type ChatMsg = { id: string; role: "user" | "assistant"; content: string };
 
 export default function ChatPage() {
-  const [lang, setLang] = useLang();
+  const [lang] = useLang();
   const t = dict[lang];
   const tc = t.chat;
-  const { data: session, status } = useSession();
+  const { status } = useSession();
 
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
@@ -92,19 +92,10 @@ export default function ChatPage() {
 
   return (
     <div dir={t.dir} className="container chat-container">
-      <div className="top-nav">
-        <div className="top-nav-auth">
-          <span>{session?.user?.name || session?.user?.email}</span>
-          <button onClick={() => signOut({ callbackUrl: "/" })}>{t.auth.signOut}</button>
-        </div>
-        <button className="lang-toggle-inline" onClick={() => setLang(lang === "ar" ? "en" : "ar")}>
-          {lang === "ar" ? "English" : "العربية"}
-        </button>
-      </div>
-
-      <div className="brand">
-        <div className="brand-mark" />
-        <h1 className="title">{tc.title}</h1>
+      <div className="page-header">
+        <span />
+        <h1>{tc.title}</h1>
+        <span />
       </div>
       <p className="tagline">{tc.subtitle}</p>
 

@@ -23,13 +23,14 @@ export async function GET() {
   const userId = await requireUserId();
   if (!userId) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
 
+  // Latest 60 weigh-ins, returned oldest-first for charting.
   const logs = await prisma.weightLog.findMany({
     where: { userId },
-    orderBy: { date: "asc" },
+    orderBy: { date: "desc" },
     take: 60,
   });
 
-  return NextResponse.json({ logs });
+  return NextResponse.json({ logs: logs.reverse() });
 }
 
 export async function POST(req: NextRequest) {
