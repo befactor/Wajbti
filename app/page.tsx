@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
+import Link from "next/link";
 import { dict, useLang } from "@/lib/i18n";
 import { localDateStr } from "@/lib/date";
 import TabsBar from "@/app/components/TabsBar";
@@ -86,6 +87,8 @@ export default function Home() {
   const [favoriteError, setFavoriteError] = useState("");
   const [profileChecked, setProfileChecked] = useState(false);
   const [hasProfile, setHasProfile] = useState(false);
+  const [calorieTarget, setCalorieTarget] = useState<number | null>(null);
+  const [todayCalories, setTodayCalories] = useState<number | null>(null);
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -96,10 +99,22 @@ export default function Home() {
         setRamadanMode(isRamadan);
         setSelectedSlot(isRamadan ? "suhoor" : "breakfast");
         setHasProfile(!!data.profile);
+        setCalorieTarget(data.profile?.dailyCalorieTarget ?? null);
       })
       .catch(() => {})
       .finally(() => setProfileChecked(true));
   }, [status]);
+
+  useEffect(() => {
+    if (status !== "authenticated" || !hasProfile) return;
+    fetch(`/api/meals?date=${localDateStr()}`)
+      .then((r) => r.json())
+      .then((data) => {
+        const meals: { totalCalories: number }[] = data.meals || [];
+        setTodayCalories(meals.reduce((sum, m) => sum + m.totalCalories, 0));
+      })
+      .catch(() => {});
+  }, [status, hasProfile, savedToDiary]);
   const [listening, setListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
@@ -340,6 +355,7 @@ export default function Home() {
         lang={lang}
         onComplete={(profile) => {
           setHasProfile(true);
+          setCalorieTarget(profile.dailyCalorieTarget ?? null);
           const isRamadan = !!profile.ramadanMode;
           setRamadanMode(isRamadan);
           setSelectedSlot(isRamadan ? "suhoor" : "breakfast");
@@ -366,6 +382,34 @@ export default function Home() {
       </div>
       <p className="tagline">{t.tagline}</p>
 
+      {!result && !loading && calorieTarget != null && todayCalories != null && (
+        <Link href="/diary" className="today-card">
+          <div className="today-card-main">
+            <span className="today-card-label">
+              {todayCalories > calorieTarget ? t.today.over : t.today.remaining}
+            </span>
+            <span className="today-card-number">
+              {Math.abs(Math.round(calorieTarget - todayCalories))}
+              <small> kcal</small>
+            </span>
+          </div>
+          <div className="today-card-bar">
+            <div
+              className={`today-card-bar-fill ${todayCalories > calorieTarget ? "over" : ""}`}
+              style={{ width: `${Math.min(100, (todayCalories / calorieTarget) * 100)}%` }}
+            />
+          </div>
+          <div className="today-card-meta">
+            <span>
+              {t.today.consumed} {Math.round(todayCalories)} · {t.today.goal} {Math.round(calorieTarget)}
+            </span>
+            <span className="today-card-link">
+              {t.today.openDiary} {t.dir === "rtl" ? "←" : "→"}
+            </span>
+          </div>
+        </Link>
+      )}
+
       {!result && !loading && (
         <>
           {imagePreview ? (
@@ -377,9 +421,14 @@ export default function Home() {
               </button>
             </div>
           ) : (
-            <div className="capture-card">
-              <label className="capture-btn" htmlFor="meal-photo-input">
-                🍽️
+            <>
+              <label className="capture-photo-card" htmlFor="meal-photo-input">
+                <div className="capture-photo-overlay" />
+                <div className="capture-photo-content">
+                  <span className="capture-btn">📷</span>
+                  <h2>{t.captureTitle}</h2>
+                  <p>{t.captureHint}</p>
+                </div>
               </label>
               <input
                 id="meal-photo-input"
@@ -388,9 +437,8 @@ export default function Home() {
                 onChange={handleImageSelect}
                 style={{ display: "none" }}
               />
-              <h2>{t.captureTitle}</h2>
-              <p>{t.captureDesc}</p>
-            </div>
+              <p className="capture-or">{t.captureDesc}</p>
+            </>
           )}
 
           <div className="desc-input">
@@ -429,7 +477,7 @@ export default function Home() {
       {loading && (
         <div className="loading-box">
           <div className="spin" />
-          <p style={{ fontFamily: "El Messiri", fontSize: 16 }}>{t.loading}</p>
+          <p style={{ fontFamily: "El Messiri, Cairo, sans-serif", fontSize: 16 }}>{t.loading}</p>
           <span style={{ fontSize: 12 }}>{t.loadingSub}</span>
         </div>
       )}

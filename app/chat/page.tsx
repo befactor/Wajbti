@@ -34,10 +34,10 @@ export default function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, sending]);
 
-  async function sendMessage() {
-    const text = input.trim();
+  async function sendMessage(preset?: string) {
+    const text = (preset ?? input).trim();
     if (!text || sending) return;
-    setInput("");
+    if (!preset) setInput("");
     setSending(true);
     setChatError("");
     setMessages((prev) => [...prev, { id: `tmp-${Date.now()}`, role: "user", content: text }]);
@@ -109,7 +109,21 @@ export default function ChatPage() {
       <p className="tagline">{tc.subtitle}</p>
 
       <div className="chat-thread">
-        {messages.length === 0 && <div className="chat-bubble assistant">{tc.empty}</div>}
+        {messages.length === 0 && (
+          <>
+            <div className="chat-bubble assistant">{tc.empty}</div>
+            {!sending && (
+              <div className="chat-suggestions">
+                <p>{tc.suggestionsTitle}</p>
+                {tc.suggestions.map((q) => (
+                  <button key={q} className="chat-suggestion" onClick={() => sendMessage(q)}>
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
         {messages.map((m) => (
           <div key={m.id} className={`chat-bubble ${m.role}`}>
             {m.content}
@@ -130,7 +144,7 @@ export default function ChatPage() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
           />
-          <button onClick={sendMessage} disabled={sending || !input.trim()}>
+          <button onClick={() => sendMessage()} disabled={sending || !input.trim()}>
             {tc.send}
           </button>
         </div>

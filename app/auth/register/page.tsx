@@ -5,6 +5,8 @@ import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { dict, useLang } from "@/lib/i18n";
+import SocialAuthButtons from "@/app/components/SocialAuthButtons";
+import AuthHero from "@/app/components/AuthHero";
 
 export default function RegisterPage() {
   const [lang, setLang] = useLang();
@@ -15,6 +17,7 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -54,44 +57,60 @@ export default function RegisterPage() {
   }
 
   return (
-    <div dir={t.dir} className="container">
-      <button className="lang-toggle" onClick={() => setLang(lang === "ar" ? "en" : "ar")}>
-        {lang === "ar" ? "English" : "العربية"}
-      </button>
+    <div dir={t.dir} className="auth-page">
+      <AuthHero
+        lang={lang}
+        setLang={setLang}
+        image="https://images.unsplash.com/photo-1633945274405-b6c8069047b0?w=900&q=70&auto=format&fit=crop"
+        title={ta.registerTitle}
+        subtitle={ta.registerSubtitle}
+      />
 
-      <div className="brand">
-        <div className="brand-mark" />
-        <h1 className="title">{t.appName}</h1>
-      </div>
-
-      <div className="form-card">
-        <h2 style={{ fontFamily: "El Messiri", fontSize: 18, marginBottom: 16, textAlign: "center" }}>
-          {ta.registerTitle}
-        </h2>
+      <div className="form-card auth-card">
+        <SocialAuthButtons lang={lang} />
 
         {error && <p className="error-text">{error}</p>}
 
         <form onSubmit={handleRegister}>
           <div className="form-field">
             <label>{ta.nameLabel}</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
+            <input type="text" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div className="form-field">
             <label>{ta.emailLabel}</label>
-            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input
+              type="email"
+              required
+              autoComplete="email"
+              inputMode="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
           <div className="form-field">
             <label>{ta.passwordLabel}</label>
-            <input
-              type="password"
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <div className="password-field">
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                minLength={8}
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "hide password" : "show password"}
+              >
+                {showPassword ? "🙈" : "👁️"}
+              </button>
+            </div>
+            <p className="hint">{ta.passwordHint}</p>
           </div>
           <button className="analyze-cta" type="submit" disabled={loading}>
-            {ta.registerCta}
+            {loading ? "…" : ta.registerCta}
           </button>
         </form>
 

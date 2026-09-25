@@ -24,6 +24,14 @@ type WaterLog = { id: string; amountMl: number };
 const WATER_NOTIF_ID_BASE = 9000;
 const WATER_NOTIF_ID_MAX = WATER_NOTIF_ID_BASE + 99;
 
+const HOURS = Array.from({ length: 24 }, (_, h) => h);
+
+function formatHour(h: number, lang: "ar" | "en"): string {
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  if (lang === "ar") return `${h12}:00 ${h < 12 ? "ص" : "م"}`;
+  return `${h12}:00 ${h < 12 ? "AM" : "PM"}`;
+}
+
 function computeReminderSlots(settings: WaterSettings): { hour: number; minute: number }[] {
   // startHour > endHour means an overnight window (e.g. Ramadan: iftar at
   // 19 through suhoor cutoff at 4) - span wraps past midnight.
@@ -305,26 +313,31 @@ export default function WaterPage() {
         <div className="water-cups">
           {Array.from({ length: cupsTotal }).map((_, i) => (
             <span key={i} className={i < cupsFilled ? "cup filled" : "cup"}>
-              🥤
+              💧
             </span>
           ))}
         </div>
       </div>
 
       <div className="feedback-row">
-        <button onClick={() => addWater(250)}>+ {tw.addGlass}</button>
-        <button onClick={() => addWater(500)}>+ {tw.addBottle}</button>
+        <button className="water-add-btn" onClick={() => addWater(250)}>
+          <span className="water-add-icon">🥛</span>+ {tw.addGlass}
+        </button>
+        <button className="water-add-btn" onClick={() => addWater(500)}>
+          <span className="water-add-icon">🍶</span>+ {tw.addBottle}
+        </button>
       </div>
       {waterError && <p className="error-text" style={{ textAlign: "center" }}>{waterError}</p>}
       {logs.length > 0 && (
-        <button className="analyze-cta" onClick={undoLast} style={{ background: "var(--card)", color: "var(--tanoor)", border: "1px solid var(--line)" }}>
-          {tw.undo}
+        <button className="link-btn" onClick={undoLast}>
+          ↺ {tw.undo}
         </button>
       )}
 
       {notifPermission !== "granted" && notifPermission !== "unsupported" && (
         <div className="tip-card">
-          <p style={{ marginBottom: 10 }}>{tw.notifPermissionNote}</p>
+          <p style={{ marginBottom: 6 }}>{tw.notifPermissionNote}</p>
+          {!isNative && <p className="hint" style={{ marginBottom: 6 }}>{tw.webNotifNote}</p>}
           <button className="analyze-cta" onClick={requestNotifications}>
             {tw.enableNotifications}
           </button>
@@ -333,7 +346,7 @@ export default function WaterPage() {
 
       {settings && (
         <form className="form-card" onSubmit={saveSettings}>
-          <h3 style={{ fontFamily: "El Messiri", fontSize: 15, marginBottom: 14 }}>{tw.settingsTitle}</h3>
+          <h3 style={{ fontFamily: "El Messiri, Cairo, sans-serif", fontSize: 15, marginBottom: 14 }}>{tw.settingsTitle}</h3>
 
           <div className="form-field">
             <label>
@@ -360,24 +373,30 @@ export default function WaterPage() {
 
           <div className="form-field">
             <label>{tw.startHour}</label>
-            <input
-              type="number"
-              min={0}
-              max={23}
+            <select
               value={settings.startHour}
               onChange={(e) => setSettings({ ...settings, startHour: Number(e.target.value) })}
-            />
+            >
+              {HOURS.map((h) => (
+                <option key={h} value={h}>
+                  {formatHour(h, lang)}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="form-field">
             <label>{tw.endHour}</label>
-            <input
-              type="number"
-              min={0}
-              max={23}
+            <select
               value={settings.endHour}
               onChange={(e) => setSettings({ ...settings, endHour: Number(e.target.value) })}
-            />
+            >
+              {HOURS.map((h) => (
+                <option key={h} value={h}>
+                  {formatHour(h, lang)}
+                </option>
+              ))}
+            </select>
           </div>
 
           <button className="analyze-cta" type="submit" disabled={savingSettings}>

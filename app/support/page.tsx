@@ -55,7 +55,7 @@ export default function SupportPage() {
     <div dir={dir} className="container">
       <div className="top-nav">
         <Link href="/" className="lang-toggle-inline">
-          {lang === "ar" ? "← رجوع" : "← Back"}
+          {lang === "ar" ? "→ رجوع" : "← Back"}
         </Link>
         <button className="lang-toggle-inline" onClick={() => setLang(lang === "ar" ? "en" : "ar")}>
           {lang === "ar" ? "English" : "العربية"}

@@ -39,6 +39,7 @@ type FavoriteMeal = {
 
 const STANDARD_SLOTS: MealSlot[] = ["breakfast", "lunch", "dinner", "snack"];
 const RAMADAN_SLOTS: MealSlot[] = ["suhoor", "iftar"];
+const NOTIF_PROMPT_DISMISSED_KEY = "wajbti_diary_notif_prompt_dismissed";
 
 export default function DiaryPage() {
   const [lang, setLang] = useLang();
@@ -69,6 +70,24 @@ export default function DiaryPage() {
     }
     setNotifPermission(Notification.permission);
   }, []);
+
+  const [notifPromptDismissed, setNotifPromptDismissed] = useState(true);
+  useEffect(() => {
+    try {
+      setNotifPromptDismissed(localStorage.getItem(NOTIF_PROMPT_DISMISSED_KEY) === "1");
+    } catch {
+      setNotifPromptDismissed(false);
+    }
+  }, []);
+
+  function dismissNotifPrompt() {
+    setNotifPromptDismissed(true);
+    try {
+      localStorage.setItem(NOTIF_PROMPT_DISMISSED_KEY, "1");
+    } catch {
+      // no-op
+    }
+  }
 
   async function requestNotifications() {
     if (!("Notification" in window)) return;
@@ -181,6 +200,7 @@ export default function DiaryPage() {
   }, [status, dateStr]);
 
   const SLOT_ORDER = ramadanMode ? RAMADAN_SLOTS : STANDARD_SLOTS;
+  const isToday = dateStr === localDateStr();
 
   async function deleteMeal(id: string) {
     setMeals((prev) => prev.filter((m) => m.id !== id));
@@ -261,9 +281,13 @@ export default function DiaryPage() {
       </div>
 
       <div className="date-nav">
-        <button onClick={() => setDateStr(addDays(dateStr, -1))}>‹</button>
-        <span>{dateStr === localDateStr() ? td.today : dateStr}</span>
-        <button onClick={() => setDateStr(addDays(dateStr, 1))}>›</button>
+        <button onClick={() => setDateStr(addDays(dateStr, -1))} aria-label="previous day">
+          {t.dir === "rtl" ? "→" : "←"}
+        </button>
+        <span>{isToday ? td.today : dateStr}</span>
+        <button onClick={() => setDateStr(addDays(dateStr, 1))} disabled={isToday} aria-label="next day">
+          {t.dir === "rtl" ? "←" : "→"}
+        </button>
       </div>
 
       {streak > 1 && <p className="streak-badge">🔥 {td.streakLabel.replace("{n}", String(streak))}</p>}
@@ -274,15 +298,6 @@ export default function DiaryPage() {
           <Link href="/profile" className="analyze-cta" style={{ display: "block", textAlign: "center" }}>
             {td.completeProfile}
           </Link>
-        </div>
-      )}
-
-      {notifPermission === "default" && (
-        <div className="tip-card">
-          <p style={{ marginBottom: 10 }}>{td.notifPermissionNote}</p>
-          <button className="analyze-cta" onClick={requestNotifications}>
-            {td.enableNotifications}
-          </button>
         </div>
       )}
 
@@ -379,9 +394,9 @@ export default function DiaryPage() {
                   ) : (
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                       <button
+                        className="pill-btn"
                         onClick={() => logFavorite(fav)}
                         disabled={loggingFavoriteId === fav.id}
-                        style={{ width: "auto" }}
                       >
                         {td.logFavorite}
                       </button>
@@ -403,12 +418,13 @@ export default function DiaryPage() {
           )}
 
           {meals.length === 0 && (
-            <div className="tip-card" style={{ textAlign: "center" }}>
-              <p style={{ marginBottom: 10 }}>{td.empty}</p>
-              <Link href="/" className="analyze-cta" style={{ display: "block" }}>
-                {td.addMeal}
-              </Link>
-            </div>
+            <Link href="/" className="empty-photo-card">
+              <div className="capture-photo-overlay" />
+              <div className="empty-photo-content">
+                <p>{td.empty}</p>
+                <span className="empty-photo-cta">📷 {td.addMeal}</span>
+              </div>
+            </Link>
           )}
 
           {SLOT_ORDER.filter((slot) => grouped[slot].length > 0).map((slot) => (
@@ -432,6 +448,18 @@ export default function DiaryPage() {
             </div>
           ))}
         </>
+      )}
+
+      {notifPermission === "default" && !notifPromptDismissed && (
+        <div className="tip-card">
+          <p style={{ marginBottom: 10 }}>{td.notifPermissionNote}</p>
+          <button className="analyze-cta" onClick={requestNotifications} style={{ marginTop: 0 }}>
+            {td.enableNotifications}
+          </button>
+          <button className="link-btn" onClick={dismissNotifPrompt}>
+            {td.notNow}
+          </button>
+        </div>
       )}
 
       <TabsBar lang={lang} />

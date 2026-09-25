@@ -251,6 +251,54 @@ export default function ProfilePage() {
         <h1 className="title">{tp.title}</h1>
       </div>
 
+      {(form.bmr || bmi) && (
+        <div className="tip-card">
+          <h3>📊 {tp.resultsTitle}</h3>
+          <div className="results-grid">
+            {form.bmr && (
+              <p>
+                {tp.bmr}: <strong>{form.bmr}</strong> kcal
+              </p>
+            )}
+            {form.tdee && (
+              <p>
+                {tp.tdee}: <strong>{form.tdee}</strong> kcal
+              </p>
+            )}
+            {form.dailyCalorieTarget && (
+              <p>
+                {tp.calorieTarget}: <strong>{form.dailyCalorieTarget}</strong> kcal
+              </p>
+            )}
+            {bmi && (
+              <p>
+                {tp.bmi}: <strong>{bmi}</strong> ({tp[`bmi_${bmiCategory}` as keyof typeof tp]})
+              </p>
+            )}
+            {form.dailyWaterTargetMl && (
+              <p>
+                {tp.water}: <strong>{(form.dailyWaterTargetMl / 1000).toFixed(1)}</strong> L
+              </p>
+            )}
+          </div>
+
+          <h4 style={{ fontSize: 12.5, fontWeight: 700, marginTop: 16, marginBottom: 8, color: "var(--taupe)" }}>
+            📚 {tp.sourcesTitle}
+          </h4>
+          <ul style={{ margin: 0, paddingInlineStart: 18, fontSize: 11.5, color: "var(--taupe)", lineHeight: 1.9 }}>
+            {SOURCES.map((s) => (
+              <li key={s.url}>
+                {s[lang]}:{" "}
+                <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--saffron-deep)" }}>
+                  {new URL(s.url).hostname.replace(/^www\./, "")}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+
       <form className="form-card" onSubmit={handleSubmit}>
         <div className="form-field">
           <label>{tp.sex}</label>
@@ -376,55 +424,8 @@ export default function ProfilePage() {
         {saved && <p style={{ color: "var(--zaatar)", fontSize: 12.5, marginTop: 10, textAlign: "center" }}>{tp.saved}</p>}
       </form>
 
-      {(form.bmr || bmi) && (
-        <div className="tip-card">
-          <h3>📊 {tp.resultsTitle}</h3>
-          <div className="results-grid">
-            {form.bmr && (
-              <p>
-                {tp.bmr}: <strong>{form.bmr}</strong> kcal
-              </p>
-            )}
-            {form.tdee && (
-              <p>
-                {tp.tdee}: <strong>{form.tdee}</strong> kcal
-              </p>
-            )}
-            {form.dailyCalorieTarget && (
-              <p>
-                {tp.calorieTarget}: <strong>{form.dailyCalorieTarget}</strong> kcal
-              </p>
-            )}
-            {bmi && (
-              <p>
-                {tp.bmi}: <strong>{bmi}</strong> ({tp[`bmi_${bmiCategory}` as keyof typeof tp]})
-              </p>
-            )}
-            {form.dailyWaterTargetMl && (
-              <p>
-                {tp.water}: <strong>{(form.dailyWaterTargetMl / 1000).toFixed(1)}</strong> L
-              </p>
-            )}
-          </div>
-
-          <h4 style={{ fontSize: 12.5, fontWeight: 700, marginTop: 16, marginBottom: 8, color: "var(--taupe)" }}>
-            📚 {tp.sourcesTitle}
-          </h4>
-          <ul style={{ margin: 0, paddingInlineStart: 18, fontSize: 11.5, color: "var(--taupe)", lineHeight: 1.9 }}>
-            {SOURCES.map((s) => (
-              <li key={s.url}>
-                {s[lang]}:{" "}
-                <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--saffron-deep)" }}>
-                  {s.url.replace(/^https?:\/\//, "")}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       <div className="form-card">
-        <h3 style={{ fontFamily: "El Messiri", fontSize: 15, marginBottom: 14 }}>{tp.weightTrackingTitle}</h3>
+        <h3 style={{ fontFamily: "El Messiri, Cairo, sans-serif", fontSize: 15, marginBottom: 14 }}>{tp.weightTrackingTitle}</h3>
 
         <WeightChart logs={weightLogs} noDataLabel={tp.weightNoData} />
 
@@ -443,7 +444,7 @@ export default function ProfilePage() {
               border: "1px solid var(--line)",
               borderRadius: 14,
               padding: "12px 14px",
-              fontFamily: "Cairo",
+              fontFamily: "Cairo, sans-serif",
               fontSize: 16,
             }}
           />
@@ -460,7 +461,7 @@ export default function ProfilePage() {
 
       {foodNotes.length > 0 && (
         <div className="form-card">
-          <h3 style={{ fontFamily: "El Messiri", fontSize: 15, marginBottom: 6 }}>{tp.foodNotesTitle}</h3>
+          <h3 style={{ fontFamily: "El Messiri, Cairo, sans-serif", fontSize: 15, marginBottom: 6 }}>{tp.foodNotesTitle}</h3>
           <p className="hint" style={{ marginBottom: 10 }}>{tp.foodNotesHint}</p>
           {foodNotes.map((n) => (
             <div key={n.id} className="diary-meal-row">
@@ -474,7 +475,7 @@ export default function ProfilePage() {
       )}
 
       <div className="form-card">
-        <h3 style={{ fontFamily: "El Messiri", fontSize: 15, marginBottom: 10, color: "var(--sumac)" }}>
+        <h3 style={{ fontFamily: "El Messiri, Cairo, sans-serif", fontSize: 15, marginBottom: 10, color: "var(--sumac)" }}>
           {tp.dangerZoneTitle}
         </h3>
         {!confirmingDelete ? (
@@ -490,7 +491,7 @@ export default function ProfilePage() {
                 color: "var(--sumac)",
                 borderRadius: 14,
                 padding: "12px 14px",
-                fontFamily: "Cairo",
+                fontFamily: "Cairo, sans-serif",
                 fontSize: 14,
                 cursor: "pointer",
               }}
@@ -514,7 +515,7 @@ export default function ProfilePage() {
                   color: "#fff",
                   borderRadius: 14,
                   padding: "12px 14px",
-                  fontFamily: "Cairo",
+                  fontFamily: "Cairo, sans-serif",
                   fontSize: 14,
                   cursor: "pointer",
                   opacity: deletingAccount ? 0.7 : 1,
@@ -532,7 +533,7 @@ export default function ProfilePage() {
                   border: "1px solid var(--line)",
                   borderRadius: 14,
                   padding: "12px 14px",
-                  fontFamily: "Cairo",
+                  fontFamily: "Cairo, sans-serif",
                   fontSize: 14,
                   cursor: "pointer",
                 }}

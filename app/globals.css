@@ -29,27 +29,50 @@ body {
   box-shadow: inset 0 0 0 3px var(--semolina), 0 2px 6px rgba(0,0,0,0.15);
 }
 .brand-mark::after { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--card); }
-h1.title { font-family: "El Messiri", sans-serif; font-size: 26px; font-weight: 700; }
+h1.title { font-family: "El Messiri", "Cairo", sans-serif; font-size: 26px; font-weight: 700; }
 .tagline { text-align: center; color: var(--taupe); font-size: 13px; margin-bottom: 28px; }
-.lang-toggle {
-  position: fixed; top: calc(16px + env(safe-area-inset-top)); inset-inline-end: 16px;
-  background: var(--card); border: 1px solid var(--line); border-radius: 20px;
-  padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; z-index: 10;
+.capture-photo-card {
+  position: relative; display: block; height: 230px; border-radius: 28px; overflow: hidden; cursor: pointer;
+  background: var(--tanoor) url("https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=900&q=70&auto=format&fit=crop") center / cover;
+  box-shadow: 0 14px 30px -14px rgba(43,33,27,0.55); margin-bottom: 8px;
+  transition: transform 0.12s ease;
 }
-.capture-card { background: var(--card); border: 2px dashed var(--saffron-deep); border-radius: 28px; padding: 32px 20px; text-align: center; margin-bottom: 18px; }
+.capture-photo-card:active { transform: scale(0.98); }
+.capture-photo-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(43,33,27,0.1) 0%, rgba(43,33,27,0.45) 45%, rgba(43,33,27,0.9) 100%);
+}
+.capture-photo-content { position: absolute; inset-inline: 0; bottom: 20px; text-align: center; color: #fff; padding: 0 20px; }
 .capture-btn {
-  width: 112px; height: 112px; border-radius: 50%;
+  width: 72px; height: 72px; border-radius: 50%; font-size: 30px;
   background: radial-gradient(circle at 32% 28%, #ffd98a, var(--saffron) 55%, var(--saffron-deep) 100%);
-  border: none; display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 18px; box-shadow: 0 12px 24px -8px rgba(200,120,20,0.55); cursor: pointer;
+  border: 3px solid rgba(255,251,243,0.9); display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 10px; box-shadow: 0 10px 24px -6px rgba(200,120,20,0.7);
+  animation: capture-pulse 2.4s ease-in-out infinite;
 }
-.capture-card h2 { font-family: "El Messiri", sans-serif; font-size: 18px; margin-bottom: 6px; }
-.capture-card p { color: var(--taupe); font-size: 13px; line-height: 1.7; }
+@keyframes capture-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+.capture-photo-content h2 { font-family: "El Messiri", "Cairo", sans-serif; font-size: 19px; margin-bottom: 2px; }
+.capture-photo-content p { color: rgba(255,255,255,0.85); font-size: 12.5px; }
+.capture-or { text-align: center; color: var(--taupe); font-size: 12.5px; margin: 6px 0 12px; }
+.today-card {
+  display: block; text-decoration: none; color: var(--tanoor); background: var(--card);
+  border: 1px solid var(--line); border-radius: 22px; padding: 16px 18px; margin-bottom: 16px;
+  box-shadow: 0 6px 18px -12px rgba(43,33,27,0.35);
+}
+.today-card-main { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.today-card-label { font-size: 13px; font-weight: 700; color: var(--taupe); }
+.today-card-number { font-family: "Tajawal", "Cairo", sans-serif; font-size: 28px; font-weight: 700; }
+.today-card-number small { font-size: 12px; color: var(--taupe); font-weight: 500; }
+.today-card-bar { height: 8px; border-radius: 6px; background: var(--line); overflow: hidden; }
+.today-card-bar-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--saffron), var(--saffron-deep)); transition: width 0.4s ease; }
+.today-card-bar-fill.over { background: var(--sumac); }
+.today-card-meta { display: flex; justify-content: space-between; margin-top: 8px; font-size: 11.5px; color: var(--taupe); }
+.today-card-link { color: var(--saffron-deep); font-weight: 700; }
 .desc-input {
   background: var(--card); border: 1px solid var(--line); border-radius: 20px;
   padding: 14px 16px; display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
 }
-.desc-input input { flex: 1; border: none; background: transparent; outline: none; font-family: "Cairo"; font-size: 16px; color: var(--tanoor); }
+.desc-input input { flex: 1; border: none; background: transparent; outline: none; font-family: "Cairo", sans-serif; font-size: 16px; color: var(--tanoor); }
 .mic-btn { background: none; border: none; cursor: pointer; font-size: 18px; padding: 4px; border-radius: 50%; flex-shrink: 0; }
 .mic-btn.listening { background: rgba(166,58,58,0.15); animation: mic-pulse 1.2s ease-in-out infinite; }
 @keyframes mic-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
@@ -68,18 +91,32 @@ h1.title { font-family: "El Messiri", sans-serif; font-size: 26px; font-weight: 
 .clarification-question { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
 .analyze-cta {
   width: 100%; background: var(--tanoor); color: var(--semolina); border: none; border-radius: 18px;
-  padding: 16px; font-family: "Cairo"; font-weight: 700; font-size: 15px; cursor: pointer; margin-top: 12px;
+  padding: 16px; font-family: "Cairo", sans-serif; font-weight: 700; font-size: 15px; cursor: pointer; margin-top: 12px;
+  text-align: center; text-decoration: none;
+}
+button, a, .onboard-option-card { -webkit-tap-highlight-color: transparent; }
+button:not(:disabled), .analyze-cta, .welcome-cta-primary, .onboard-option-card {
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+button:not(:disabled):active, .analyze-cta:active, .welcome-cta-primary:active, .onboard-option-card:active {
+  transform: scale(0.97);
+}
+button:disabled { cursor: not-allowed; }
+.analyze-cta:disabled { opacity: 0.45; }
+.link-btn {
+  display: block; margin: 10px auto 0; background: none; border: none; color: var(--taupe);
+  font-family: "Cairo", sans-serif; font-size: 12.5px; font-weight: 700; text-decoration: underline; cursor: pointer;
 }
 .plate-wrap { display: flex; justify-content: center; margin: 20px 0 10px; }
 .plate { position: relative; width: 190px; height: 190px; }
 .plate svg { width: 100%; height: 100%; transform: rotate(-90deg); }
 .plate-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.plate-center .cal { font-family: "Tajawal"; font-size: 34px; font-weight: 700; }
+.plate-center .cal { font-family: "Tajawal", "Cairo", sans-serif; font-size: 34px; font-weight: 700; }
 .plate-center .cal-label { font-size: 11px; color: var(--taupe); margin-top: 2px; }
 .macro-row { display: flex; justify-content: center; gap: 18px; margin: 18px 0 20px; }
 .macro-chip { text-align: center; }
 .dot { width: 10px; height: 10px; border-radius: 50%; margin: 0 auto 6px; }
-.macro-chip .val { font-family: "Tajawal"; font-weight: 700; font-size: 15px; }
+.macro-chip .val { font-family: "Tajawal", "Cairo", sans-serif; font-weight: 700; font-size: 15px; }
 .macro-chip .lbl { font-size: 11px; color: var(--taupe); }
 .tip-card { background: var(--card); border-radius: 20px; padding: 16px; border: 1px solid var(--line); margin-bottom: 14px; }
 .tip-card h3 { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
@@ -108,12 +145,13 @@ h1.title { font-family: "El Messiri", sans-serif; font-size: 26px; font-weight: 
 .form-field label { display: block; font-size: 12.5px; font-weight: 700; color: var(--taupe); margin-bottom: 6px; }
 .form-field input, .form-field select {
   width: 100%; background: var(--semolina); border: 1px solid var(--line); border-radius: 14px;
-  padding: 12px 14px; font-family: "Cairo"; font-size: 16px; color: var(--tanoor); outline: none;
+  padding: 12px 14px; font-family: "Cairo", sans-serif; font-size: 16px; color: var(--tanoor); outline: none;
 }
-.form-field .hint { font-size: 11px; color: var(--taupe); margin-top: 4px; }
+.hint { font-size: 12px; color: var(--taupe); line-height: 1.7; }
+.form-field .hint { font-size: 11px; margin-top: 4px; }
 .btn-google {
-  width: 100%; background: var(--card); color: var(--tanoor); border: 1px solid var(--line); border-radius: 18px;
-  padding: 14px; font-family: "Cairo"; font-weight: 700; font-size: 14px; cursor: pointer; margin-bottom: 10px;
+  width: 100%; background: #fff; color: var(--tanoor); border: 1px solid var(--line); border-radius: 18px;
+  padding: 14px; font-family: "Cairo", sans-serif; font-weight: 700; font-size: 14px; cursor: pointer; margin-bottom: 10px;
   display: flex; align-items: center; justify-content: center; gap: 8px;
 }
 .btn-disabled { opacity: 0.5; cursor: not-allowed; }
@@ -133,7 +171,7 @@ h1.title { font-family: "El Messiri", sans-serif; font-size: 26px; font-weight: 
   display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;
   font-size: 12.5px; color: var(--taupe); gap: 10px;
 }
-.top-nav a, .top-nav button { color: var(--tanoor); font-weight: 700; text-decoration: none; background: none; border: none; cursor: pointer; font-family: "Cairo"; font-size: 12.5px; }
+.top-nav a, .top-nav button { color: var(--tanoor); font-weight: 700; text-decoration: none; background: none; border: none; cursor: pointer; font-family: "Cairo", sans-serif; font-size: 12.5px; }
 .top-nav-auth { display: flex; align-items: center; gap: 10px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lang-toggle-inline {
   background: var(--card); border: 1px solid var(--line); border-radius: 20px;
@@ -151,7 +189,7 @@ h1.title { font-family: "El Messiri", sans-serif; font-size: 26px; font-weight: 
 .results-grid p:last-child { border-bottom: none; }
 .date-nav {
   display: flex; align-items: center; justify-content: center; gap: 18px; margin-bottom: 10px;
-  font-family: "Tajawal"; font-weight: 700; font-size: 14px;
+  font-family: "Tajawal", "Cairo", sans-serif; font-weight: 700; font-size: 14px;
 }
 .date-nav button { background: var(--card); border: 1px solid var(--line); border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 16px; }
 .streak-badge { text-align: center; font-size: 12.5px; font-weight: 700; color: var(--saffron-deep); margin-bottom: 14px; }
@@ -167,12 +205,17 @@ h1.title { font-family: "El Messiri", sans-serif; font-size: 26px; font-weight: 
 .water-progress { text-align: center; margin: 10px 0 20px; }
 .water-bar-outer { background: var(--card); border: 1px solid var(--line); border-radius: 20px; height: 22px; overflow: hidden; }
 .water-bar-inner { height: 100%; background: linear-gradient(90deg, #6fb1e0, #3d7ea6); border-radius: 20px; transition: width 0.3s ease; }
-.water-summary { font-family: "Tajawal"; font-weight: 700; font-size: 18px; margin-top: 10px; }
+.water-summary { font-family: "Tajawal", "Cairo", sans-serif; font-weight: 700; font-size: 18px; margin-top: 10px; }
 .water-remaining { font-size: 12px; color: var(--taupe); margin-top: 2px; }
 .water-goal-reached { font-size: 13px; color: var(--zaatar); font-weight: 700; margin-top: 4px; }
 .water-cups { display: flex; justify-content: center; gap: 6px; margin-top: 14px; flex-wrap: wrap; }
 .water-cups .cup { font-size: 20px; opacity: 0.25; filter: grayscale(1); }
 .water-cups .cup.filled { opacity: 1; filter: none; }
+.feedback-row .water-add-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 10px;
+  border-radius: 18px; font-size: 13px;
+}
+.water-add-icon { font-size: 24px; line-height: 1; }
 .image-preview-card {
   position: relative; border-radius: 24px; overflow: hidden; margin-bottom: 16px;
   border: 1px solid var(--line); background: var(--card);
@@ -206,7 +249,7 @@ h1.title { font-family: "El Messiri", sans-serif; font-size: 26px; font-weight: 
 .chat-input-row { display: flex; gap: 8px; }
 .chat-input-row input {
   flex: 1; background: var(--card); border: 1px solid var(--line); border-radius: 20px;
-  padding: 12px 16px; font-family: "Cairo"; font-size: 16px; outline: none;
+  padding: 12px 16px; font-family: "Cairo", sans-serif; font-size: 16px; outline: none;
 }
 .chat-input-row button {
   background: var(--saffron-deep); color: #fff; border: none; border-radius: 20px; padding: 0 18px;
@@ -253,7 +296,7 @@ h1.title { font-family: "El Messiri", sans-serif; font-size: 26px; font-weight: 
   position: absolute; bottom: 92px; inset-inline: 0; padding: 0 26px; z-index: 2; text-align: center;
 }
 .welcome-headline {
-  font-family: "El Messiri", sans-serif; font-size: 26px; font-weight: 700; color: #fff;
+  font-family: "El Messiri", "Cairo", sans-serif; font-size: 26px; font-weight: 700; color: #fff;
   margin-bottom: 10px; line-height: 1.35;
 }
 .welcome-subtext {
@@ -318,7 +361,7 @@ h1.title { font-family: "El Messiri", sans-serif; font-size: 26px; font-weight: 
   position: relative; z-index: 2; width: 100%; padding: 0 24px calc(48px + env(safe-area-inset-bottom));
 }
 .onboard-title {
-  font-family: "El Messiri", sans-serif; font-size: 24px; font-weight: 700; color: #fff;
+  font-family: "El Messiri", "Cairo", sans-serif; font-size: 24px; font-weight: 700; color: #fff;
   margin-bottom: 6px; text-align: center;
 }
 .onboard-title-dark { color: var(--tanoor); }
@@ -331,8 +374,8 @@ h1.title { font-family: "El Messiri", sans-serif; font-size: 26px; font-weight: 
 .onboard-option-card {
   flex: 1; display: flex; align-items: center; gap: 10px; justify-content: center;
   background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: #fff;
-  border-radius: 18px; padding: 16px; font-family: "Cairo"; font-weight: 700; font-size: 14.5px;
-  cursor: pointer;
+  border-radius: 18px; padding: 16px; font-family: "Cairo", sans-serif; font-weight: 700; font-size: 14.5px;
+  cursor: pointer; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
 }
 .onboard-option-card-light {
   background: var(--card); border: 1px solid var(--line); color: var(--tanoor);
@@ -346,7 +389,7 @@ h1.title { font-family: "El Messiri", sans-serif; font-size: 26px; font-weight: 
   display: flex; align-items: center; justify-content: center;
 }
 .onboard-summary-number {
-  font-family: "Tajawal"; font-size: 38px; font-weight: 700; color: var(--tanoor);
+  font-family: "Tajawal", "Cairo", sans-serif; font-size: 38px; font-weight: 700; color: var(--tanoor);
   background: var(--card); width: 156px; height: 156px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
 }
@@ -354,3 +397,66 @@ h1.title { font-family: "El Messiri", sans-serif; font-size: 26px; font-weight: 
   display: block; text-align: center; color: var(--taupe); font-size: 12.5px;
   margin-bottom: 24px;
 }
+
+/* Photo-header auth screens (sign in / register) */
+.auth-page { min-height: 100vh; min-height: 100dvh; background: var(--semolina); padding-bottom: calc(32px + env(safe-area-inset-bottom)); }
+.auth-hero {
+  position: relative; height: 260px; background-size: cover; background-position: center;
+  background-color: var(--tanoor); border-radius: 0 0 32px 32px; overflow: hidden;
+}
+.auth-hero-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(43,33,27,0.35) 0%, rgba(43,33,27,0.2) 40%, rgba(43,33,27,0.88) 100%);
+}
+.auth-hero-top {
+  position: absolute; top: calc(16px + env(safe-area-inset-top)); inset-inline: 16px;
+  display: flex; justify-content: space-between; align-items: center; z-index: 2;
+}
+.auth-hero-back, .auth-hero-lang {
+  background: rgba(255,251,243,0.92); color: var(--tanoor); border: none; border-radius: 20px;
+  font-family: "Cairo", sans-serif; font-weight: 700; font-size: 12px; text-decoration: none; cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+}
+.auth-hero-back { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 17px; }
+.auth-hero-lang { padding: 8px 14px; }
+.auth-hero-text { position: absolute; bottom: 44px; inset-inline: 24px; z-index: 2; color: #fff; }
+.auth-hero-brand { display: flex; align-items: center; gap: 8px; font-family: "El Messiri", "Cairo", sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 6px; opacity: 0.95; }
+.auth-hero-brand .brand-mark { width: 26px; height: 26px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+.auth-hero-brand .brand-mark::after { width: 9px; height: 9px; }
+.auth-hero-text h1 { font-family: "El Messiri", "Cairo", sans-serif; font-size: 26px; font-weight: 700; line-height: 1.3; }
+.auth-hero-text p { font-size: 13.5px; color: rgba(255,255,255,0.85); margin-top: 2px; }
+.auth-card {
+  position: relative; z-index: 3; max-width: 440px; margin: -28px auto 0;
+  margin-inline: max(16px, calc((100% - 440px) / 2)); box-shadow: 0 10px 30px -12px rgba(43,33,27,0.25);
+}
+.password-field { position: relative; }
+.password-field input { padding-inline-end: 44px; }
+.password-toggle {
+  position: absolute; top: 50%; transform: translateY(-50%); inset-inline-end: 8px;
+  background: none; border: none; font-size: 16px; cursor: pointer; padding: 6px;
+}
+.password-toggle:active { transform: translateY(-50%) scale(0.92); }
+.date-nav button:disabled { opacity: 0.3; }
+.chat-suggestions { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 4px; }
+.chat-suggestions p { font-size: 12px; font-weight: 700; color: var(--taupe); }
+.chat-suggestion {
+  background: var(--card); border: 1px solid var(--saffron); color: var(--tanoor); border-radius: 18px;
+  padding: 9px 14px; font-family: "Cairo", sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; text-align: start;
+}
+.empty-photo-card {
+  position: relative; display: block; height: 190px; border-radius: 24px; overflow: hidden; margin-bottom: 14px;
+  background: var(--tanoor) url("https://images.unsplash.com/photo-1633945274405-b6c8069047b0?w=900&q=70&auto=format&fit=crop") center / cover;
+  text-decoration: none;
+}
+.empty-photo-content { position: absolute; inset-inline: 0; bottom: 18px; text-align: center; padding: 0 20px; color: #fff; }
+.empty-photo-content p { font-size: 13.5px; font-weight: 600; margin-bottom: 10px; }
+.empty-photo-cta {
+  display: inline-block; background: var(--saffron); color: var(--tanoor); font-weight: 700; font-size: 14px;
+  padding: 10px 22px; border-radius: 16px;
+}
+.pill-btn {
+  background: var(--saffron); color: var(--tanoor); border: none; border-radius: 14px;
+  padding: 7px 14px; font-family: "Cairo", sans-serif; font-weight: 700; font-size: 12.5px; cursor: pointer; white-space: nowrap;
+}
+.pill-btn:disabled { opacity: 0.5; }
+button, input, select, textarea { font-family: inherit; }
