@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Capacitor } from "@capacitor/core";
@@ -31,8 +31,16 @@ export default function SocialAuthButtons({ lang }: { lang: Lang }) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  // null until mounted, so the Google button never flashes inside the app.
+  const [isNative, setIsNative] = useState<boolean | null>(null);
+  useEffect(() => setIsNative(Capacitor.isNativePlatform()), []);
 
-  if (!GOOGLE_ENABLED && !APPLE_ENABLED) return null;
+  // Google refuses OAuth inside embedded WebViews (disallowed_useragent),
+  // and its web redirect would leave the app for Safari - so the iOS app
+  // offers native Sign in with Apple + email only.
+  const showGoogle = GOOGLE_ENABLED && isNative === false;
+
+  if (!showGoogle && !APPLE_ENABLED) return null;
 
   async function handleAppleSignIn() {
     if (!Capacitor.isNativePlatform()) {
@@ -67,7 +75,7 @@ export default function SocialAuthButtons({ lang }: { lang: Lang }) {
           {ta.continueWithApple}
         </button>
       )}
-      {GOOGLE_ENABLED && (
+      {showGoogle && (
         <button type="button" className="btn-google" onClick={() => signIn("google", { callbackUrl: "/" })}>
           <GoogleLogo />
           {ta.continueWithGoogle}

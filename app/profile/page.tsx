@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { signOutInPlace } from "@/lib/signOut";
 import Link from "next/link";
 import { dict, useLang } from "@/lib/i18n";
 import TabsBar from "@/app/components/TabsBar";
@@ -123,7 +124,7 @@ export default function ProfilePage() {
       setDeleteError(tp.deleteAccountError);
       return;
     }
-    await signOut({ callbackUrl: "/" });
+    await signOutInPlace();
   }
 
   useEffect(() => {

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { signOutInPlace } from "@/lib/signOut";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { dict, useLang } from "@/lib/i18n";
@@ -114,7 +115,7 @@ export default function MorePage() {
           <span className="menu-label">{tm.language}</span>
           <span className="menu-value">{lang === "ar" ? "العربية" : "English"}</span>
         </button>
-        <button className="menu-row danger" onClick={() => signOut({ callbackUrl: "/" })}>
+        <button className="menu-row danger" onClick={signOutInPlace}>
           <span className="menu-icon" style={{ background: "rgba(166,58,58,0.12)" }}>↩️</span>
           <span className="menu-label">{t.auth.signOut}</span>
         </button>
